@@ -2,15 +2,26 @@ import { AnimChannel } from "./anim";
 import { cx, drag } from "./canvas"
 import type { SceneName } from "./main"
 import { box_intersect, type Rect } from "./math/rect";
-import { vec2, type Vec2 } from "./math/vec2";
+import { sub, vec2, type Vec2 } from "./math/vec2";
 import { colors } from "./pico_colors";
 
 let COLLISIONS = false
 //COLLISIONS = true
 
 type Cursor = {
-    xy: Vec2
-    wh: Vec2
+    xy: Vec2,
+    wh: Vec2,
+    follow: {
+        x: AnimChannel,
+        y: AnimChannel
+    },
+    drag?: {
+        decay: Vec2
+        channels: {
+            x: AnimChannel,
+            y: AnimChannel
+        }
+    }
 }
 
 let cursor: Cursor
@@ -18,26 +29,49 @@ let cursor: Cursor
 let time: number = 0
 
 let channels: Record<string, AnimChannel> = {
-    a: new AnimChannel(0).setSway({
+    a: new AnimChannel().swayTo({
         amplitude: 0.1,
         frequency: 2 - 0.1,
-        bias: 0.1
+        bias: 0.03
     }),
-    b: new AnimChannel(0).setSway({
+    b: new AnimChannel().swayTo({
         amplitude: 0.1,
         frequency: 2 + 0.1,
-        bias: -0.1
+        bias: -0.03
     }),
-    c: new AnimChannel(0).setSway({
+    c: new AnimChannel().swayTo({
         amplitude: 0.1 - 0.05,
         frequency: 2.5,
         bias: 0
     })
 }
 
+
+let drag_channels: Record<string, { x: AnimChannel, y: AnimChannel }> = {
+    a: {
+        x: new AnimChannel(),
+        y: new AnimChannel()
+    },
+    b: {
+        x: new AnimChannel(),
+        y: new AnimChannel()
+    },
+    c: {
+        x: new AnimChannel(),
+        y: new AnimChannel()
+    },
+}
+
 export function _init() {
     time = 0
-    cursor = { xy: vec2(0, 0), wh: { x: 40, y: 40 } }
+    cursor = { 
+        xy: vec2(0, 0), 
+        wh: { x: 40, y: 40 },
+        follow: { 
+            x: new AnimChannel().swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
+            y: new AnimChannel().swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
+        }
+    }
 
     cx.lineCap = 'round'
     cx.lineJoin = 'round'
@@ -60,7 +94,27 @@ const conveyor3_box: Rect = {
 export function _update(delta: number) {
 
     time += delta / 1000
-    cursor.xy = vec2(...drag.is_hovering)
+
+    cursor.follow.x.followTo(drag.is_hovering[0])
+    cursor.follow.y.followTo(drag.is_hovering[1])
+
+    cursor.follow.x.update(delta / 1000)
+    cursor.follow.y.update(delta / 1000)
+
+    cursor.xy = vec2(cursor.follow.x.value, cursor.follow.y.value)
+
+    if (cursor.drag === undefined) {
+        cursor.follow.x.swayEnabled = true
+        cursor.follow.y.swayEnabled = true
+    }
+
+    if (cursor.drag) {
+        if (drag.has_moved_after_last_down) {
+            cursor.drag.channels.x.followTo(cursor.xy.x - cursor.drag.decay.x)
+            cursor.drag.channels.y.followTo(cursor.xy.y - cursor.drag.decay.y)
+        }
+    }
+
 
     let conveyor1_hit = cursor_hits_box(conveyor1_box)
     let conveyor2_hit = cursor_hits_box(conveyor2_box)
@@ -68,25 +122,105 @@ export function _update(delta: number) {
 
     if (conveyor1_hit || conveyor2_hit || conveyor3_hit) {
 
-        for (let key of Object.keys(channels)) {
-            channels[key].setSpring({ stiffness: 300, damping: 6 }, 0)
-            channels[key].disableSway()
-            channels[key].disableNoise()
-        }
+        cursor.follow.x.swayEnabled = false
+        cursor.follow.y.swayEnabled = false
 
     } else {
-        for (let key of Object.keys(channels)) {
-            channels[key].setSpring({ stiffness: 300, damping: 3 }, 0.1)
-            channels[key].enableSway()
-            channels[key].enableNoise()
+
+        if (cursor.drag === undefined) {
+            
         }
 
 
     }
 
-    for (let key of Object.keys(channels)) {
-        channels[key].update(delta/ 1000)
+    if (drag.is_just_down) {
+        if (conveyor1_hit) {
+
+            channels.a.swayEnabled = false
+            channels.b.swayEnabled = false
+            channels.c.swayEnabled = false
+            channels.a.springTo(0, { stiffness: 800, damping: 4 })
+            channels.b.springTo(0, { stiffness: 800, damping: 3 })
+            channels.c.springTo(0, { stiffness: 800, damping: 2 })
+
+
+            drag_channels.a.x.springTo(-15, {stiffness: 400, damping: 8})
+            drag_channels.a.y.springTo(-10, {stiffness: 400, damping: 2})
+            cursor.drag = { 
+                decay: sub(cursor.xy, { x: drag_channels.a.x.value - 15, y: drag_channels.a.y.value -10 } ),
+                channels: drag_channels.a
+            }
+
+        }
+        if (conveyor2_hit) {
+
+            channels.a.swayEnabled = false
+            channels.b.swayEnabled = false
+            channels.c.swayEnabled = false
+            channels.a.springTo(0, { stiffness: 800, damping: 4 })
+            channels.b.springTo(0, { stiffness: 800, damping: 3 })
+            channels.c.springTo(0, { stiffness: 800, damping: 2 })
+
+
+
+            drag_channels.b.x.springTo(-15, { stiffness: 400, damping: 8 })
+            drag_channels.b.y.springTo(-10, { stiffness: 400, damping: 2 })
+            cursor.drag = { 
+                decay: sub(cursor.xy, { x: drag_channels.b.x.value - 15, y: drag_channels.b.y.value - 10 } ),
+                channels: drag_channels.b
+            }
+        }
+        if (conveyor3_hit) {
+
+            channels.a.swayEnabled = false
+            channels.b.swayEnabled = false
+            channels.c.swayEnabled = false
+            channels.a.springTo(0, { stiffness: 800, damping: 4 })
+            channels.b.springTo(0, { stiffness: 800, damping: 3 })
+            channels.c.springTo(0, { stiffness: 800, damping: 2 })
+
+
+
+            drag_channels.c.x.springTo(-15, { stiffness: 400, damping: 8 })
+            drag_channels.c.y.springTo(-10, { stiffness: 400, damping: 2 })
+            cursor.drag = { 
+                decay: sub(cursor.xy, { x: drag_channels.c.x.value - 15, y: drag_channels.c.y.value - 10} ),
+                channels: drag_channels.c
+            }
+        }
+    } else if (drag.is_up) {
+
+        if (cursor.drag) {
+
+            channels.a.swayEnabled = true
+            channels.b.swayEnabled = true
+            channels.c.swayEnabled = true
+
+            channels.a.hold()
+            channels.b.hold()
+            channels.c.hold()
+
+            cursor.drag = undefined
+
+            for (let key of Object.keys(drag_channels)) {
+                drag_channels[key].x.springTo(0, { stiffness: 120, damping: 10 })
+                drag_channels[key].y.springTo(0, { stiffness: 200, damping: 10 })
+            }
+        }
     }
+
+
+    for (let key of Object.keys(channels)) {
+        channels[key].update(delta / 1000)
+    }
+
+    for (let key of Object.keys(drag_channels)) {
+        drag_channels[key].x.update(delta / 1000)
+        drag_channels[key].y.update(delta / 1000)
+    }
+
+
 
 }
 
@@ -176,28 +310,46 @@ export function _render() {
     cx.beginPath()
 
     cx.translate(100, 100)
+
+    cx.save()
+
+    cx.translate(drag_channels.a.x.value, drag_channels.a.y.value)
+
     cx_box(channels.a.value)
     cx.translate(100, 0)
     cx_box(channels.b.value)
     cx.translate(-100, 100)
     cx_box(channels.c.value)
 
-    cx.translate(0, 200)
+    cx.restore()
+
+    cx.save()
+
+    cx.translate(drag_channels.b.x.value, drag_channels.b.y.value)
+
+    cx.translate(0, 300)
     cx_box(channels.a.value)
     cx.translate(100, 0)
     cx_box(channels.b.value)
     cx.translate(-100, 100)
     cx_box(channels.c.value)
 
-    cx.translate(0, 200)
+    cx.restore()
+
+
+
+    cx.save()
+
+    cx.translate(drag_channels.c.x.value, drag_channels.c.y.value)
+
+    cx.translate(0, 600)
     cx_box(channels.a.value)
     cx.translate(100, 0)
     cx_box(channels.b.value)
     cx.translate(-100, 100)
     cx_box(channels.c.value)
 
-
-
+    cx.restore()
 
     cx.stroke()
     cx.restore()

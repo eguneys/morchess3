@@ -1,7 +1,7 @@
 import './style.css'
 import { Loop } from "./loop_input"
 import * as simulate from './simulation'
-import { init_canvas } from './canvas'
+import { drag, init_canvas } from './canvas'
 
 
 type Scene = {
@@ -57,6 +57,8 @@ function _update(delta: number) {
     if (next !== undefined) {
         switch_to_scene(Scenes[next])
     }
+
+    drag.update(delta)
 }
 
 

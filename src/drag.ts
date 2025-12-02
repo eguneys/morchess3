@@ -49,7 +49,17 @@ export function DragHandler(el: HTMLCanvasElement) {
             e = scale_e(e)
 
             is_hovering = e
-            has_moved_after_last_down = true
+
+
+            if (is_down) {
+
+                let dx = is_down[0] - e[0]
+                let dy = is_down[1] - e[1]
+                
+                if (dx * dx + dy * dy > 8 * 8) {
+                    has_moved_after_last_down = true
+                }
+            }
         }
     }
 
