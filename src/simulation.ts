@@ -237,7 +237,7 @@ export function _update(delta: number) {
         sway_channels[2].springTo(0, { stiffness: 800, damping: 2 })
     } else {
 
-        if (cursor.drag === undefined) {
+        if (cursor.drag === undefined || cursor.drag.released) {
             sway_channels[0].swayEnabled = true
             sway_channels[1].swayEnabled = true
             sway_channels[2].swayEnabled = true
@@ -319,12 +319,17 @@ export function _update(delta: number) {
 
     for (let slot of Slots) {
 
+        if (locks[slot]) {
+            continue
+        }
+
         let i_cell = -1
         for (let i = 0; i < 2; i++) {
             shapes: for (let j = 0; j < 2; j++) {
                 if (shapes[slot][i][j] === null) {
                     continue
                 }
+
                 let box = shape_boxes[slot][++i_cell]
 
                 let is_on_a_color = false
@@ -498,6 +503,34 @@ export function _render() {
     cx.setLineDash([])
 
 
+    cx.strokeStyle = colors.purple
+    cx.beginPath()
+    cx.lineWidth = 7
+
+    cx.moveTo(1650, 30)
+    cx.lineTo(1650, 80)
+
+    gap = 25
+    cx.moveTo(1270, 30)
+    cx.lineTo(1270, 80)
+    cx.moveTo(1270 + gap, 30)
+    cx.lineTo(1270 + gap, 80)
+
+    cx.moveTo(550, 30)
+    cx.lineTo(550, 80)
+    cx.moveTo(550 + gap, 30)
+    cx.lineTo(550 + gap, 80)
+    cx.moveTo(550 + gap + gap, 30)
+    cx.lineTo(550 + gap + gap, 80)
+
+    cx.stroke()
+
+    cx.lineWidth = 2
+    cx.moveTo(0, 100)
+    cx.lineTo(1920, 100)
+    cx.stroke()
+
+
     if (cursor.drag) {
         shape(x + cursor.drag.channels.x.value, y + cursor.drag.channels.y.value, cursor.drag.shape, cursor.drag.slot)
     }
@@ -558,21 +591,20 @@ function render_debug() {
 }
 
 function shape(x: number, y: number, shape: Shape, slot: Slot) {
+    let no_sway = locks[slot] ? 0 : 1
     let i_cell = 0
     cx.lineWidth = 8
-    cx.strokeStyle = colors.white
-    cx.beginPath()
     for (let i = 0; i < 2; i++) {
         for (let j = 0; j < 2; j++) {
             if (shape[i][j] === null) {
                 continue
             }
-            cx_box(x + i * 100, y + j * 100, sway_channels[i_cell++].value)
-
-
+            cx.strokeStyle = (locks[slot] && shape[i][j] !== 'empty') ? pallette_color_to_pico(shape[i][j]) : colors.white
+            cx.beginPath()
+            cx_box(x + i * 100, y + j * 100, no_sway * sway_channels[i_cell++].value)
+            cx.stroke()
         }
     }
-    cx.stroke()
 
 
     i_cell = 0
@@ -584,7 +616,7 @@ function shape(x: number, y: number, shape: Shape, slot: Slot) {
             cx.save()
             cx.fillStyle = colors.darkblue
             cx.beginPath()
-            cx_box(x + i * 100, y + j * 100, sway_channels[i_cell].value)
+            cx_box(x + i * 100, y + j * 100, no_sway * sway_channels[i_cell].value)
             cx.fill()
             cx.clip()
             cx.beginPath()
