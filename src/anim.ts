@@ -54,7 +54,7 @@ export class AnimChannel {
     private swayFade = 0
 
     constructor(startValue = 0) {
-        this.value = startValue;
+        this.baseValue = startValue;
     }
 
     // -------------------

@@ -4,9 +4,12 @@ import type { SceneName } from "./main"
 import { box_intersect, box_intersect_ratio, type Rect } from "./math/rect";
 import { sub, vec2, type Vec2 } from "./math/vec2";
 import { colors } from "./pico_colors";
+import { Palette, Utils, type Color as PaletteColor, type Shape } from "./tetro";
+
+type Color = string
 
 let COLLISIONS = false
-//COLLISIONS = true
+COLLISIONS = true
 
 type Cursor = {
     xy: Vec2,
@@ -20,7 +23,9 @@ type Cursor = {
         channels: {
             x: AnimChannel,
             y: AnimChannel
-        }
+        },
+        shape: Shape,
+        released: boolean
     }
 }
 
@@ -57,13 +62,25 @@ let drag_channels: Record<string, { x: AnimChannel, y: AnimChannel }> = {
     },
     b: {
         x: new AnimChannel(),
-        y: new AnimChannel()
+        y: new AnimChannel(300 * 1)
     },
     c: {
         x: new AnimChannel(),
-        y: new AnimChannel()
+        y: new AnimChannel(300 * 2)
     },
 }
+
+
+type Shapes = {
+    a: Shape
+    b: Shape
+    c: Shape
+}
+
+let shapes: Shapes
+
+let palette_a: Palette
+let palette_b: Palette
 
 export function _init() {
     time = 0
@@ -78,6 +95,28 @@ export function _init() {
 
     cx.lineCap = 'round'
     cx.lineJoin = 'round'
+
+
+    shapes = {
+        a: Utils.random_shape(),
+        b: Utils.random_shape(),
+        c: Utils.random_shape()
+    }
+
+    palette_a = new Palette(2, 4, [
+        ['red', 'red'],
+        ['green', 'green'],
+        ['yellow', 'yellow'],
+        ['white', 'white'],
+    ])
+
+
+    palette_b = new Palette(2, 4, [
+        ['red', 'green'],
+        ['red', 'green'],
+        ['yellow', 'white'],
+        ['yellow', 'white'],
+    ])
 }
 
 
@@ -112,12 +151,12 @@ export function _update(delta: number) {
 
     cursor.xy = vec2(cursor.follow.x.value, cursor.follow.y.value)
 
-    if (cursor.drag === undefined) {
+    if (cursor.drag === undefined || cursor.drag.released) {
         cursor.follow.x.swayEnabled = true
         cursor.follow.y.swayEnabled = true
     }
 
-    if (cursor.drag) {
+    if (cursor.drag && !cursor.drag.released) {
         if (drag.has_moved_after_last_down) {
             cursor.drag.channels.x.followTo(cursor.xy.x - cursor.drag.decay.x)
             cursor.drag.channels.y.followTo(cursor.xy.y - cursor.drag.decay.y)
@@ -158,7 +197,9 @@ export function _update(delta: number) {
             drag_channels.a.y.springTo(-10, {stiffness: 400, damping: 2})
             cursor.drag = { 
                 decay: sub(cursor.xy, { x: drag_channels.a.x.value - 15, y: drag_channels.a.y.value -10 } ),
-                channels: drag_channels.a
+                channels: drag_channels.a,
+                shape: shapes.a,
+                released: false
             }
 
         }
@@ -174,10 +215,12 @@ export function _update(delta: number) {
 
 
             drag_channels.b.x.springTo(-15, { stiffness: 400, damping: 8 })
-            drag_channels.b.y.springTo(-10, { stiffness: 400, damping: 2 })
+            drag_channels.b.y.springTo(-10 + 300 * 1, { stiffness: 400, damping: 2 })
             cursor.drag = { 
                 decay: sub(cursor.xy, { x: drag_channels.b.x.value - 15, y: drag_channels.b.y.value - 10 } ),
-                channels: drag_channels.b
+                channels: drag_channels.b,
+                shape: shapes.b,
+                released: false
             }
         }
         if (conveyor3_hit) {
@@ -192,10 +235,12 @@ export function _update(delta: number) {
 
 
             drag_channels.c.x.springTo(-15, { stiffness: 400, damping: 8 })
-            drag_channels.c.y.springTo(-10, { stiffness: 400, damping: 2 })
+            drag_channels.c.y.springTo(-10 + 300 * 2, { stiffness: 400, damping: 2 })
             cursor.drag = { 
-                decay: sub(cursor.xy, { x: drag_channels.c.x.value - 15, y: drag_channels.c.y.value - 10} ),
-                channels: drag_channels.c
+                decay: sub(cursor.xy, { x: drag_channels.c.x.value - 15, y: drag_channels.c.y.value - 10 } ),
+                channels: drag_channels.c,
+                shape: shapes.c,
+                released: false
             }
         }
     } else if (drag.is_up) {
@@ -210,12 +255,16 @@ export function _update(delta: number) {
             channels.b.hold()
             channels.c.hold()
 
-            cursor.drag = undefined
+            cursor.drag.released = true
 
-            for (let key of Object.keys(drag_channels)) {
-                drag_channels[key].x.springTo(0, { stiffness: 120, damping: 10 })
-                drag_channels[key].y.springTo(0, { stiffness: 200, damping: 10 })
-            }
+            drag_channels.a.x.springTo(0, { stiffness: 120, damping: 10 })
+            drag_channels.a.y.springTo(0, { stiffness: 200, damping: 10 })
+
+            drag_channels.b.x.springTo(0, { stiffness: 120, damping: 10 })
+            drag_channels.b.y.springTo(300 * 1, { stiffness: 200, damping: 10 })
+
+            drag_channels.c.x.springTo(0, { stiffness: 120, damping: 10 })
+            drag_channels.c.y.springTo(300 * 2, { stiffness: 200, damping: 10 })
         }
     }
 
@@ -242,6 +291,7 @@ export function _update(delta: number) {
 
 }
 
+
 function a_box(): Rect {
     let x = drag_channels.a.x.value
     let y = drag_channels.a.y.value
@@ -259,177 +309,109 @@ function a_hits_red(box: Rect) {
     return box_intersect_ratio(red1_box, box) > 0.5
 }
 
-export function _render() {
+function pallette_color_to_pico(color: PaletteColor): Color {
+    switch (color) {
+        case 'red':
+            return colors.red
+        case 'green':
+            return colors.green
+        case 'yellow':
+            return colors.yellow
+        case 'white':
+            return colors.sand
+        case 'empty':
+            return colors.darkblue
+    }
+    return colors.darkred
+}
 
-    cx.fillStyle = colors.darkblue;
+export function _render() {
+    cx.fillStyle = colors.darkblue
     cx.fillRect(0, 0, 1920, 1080)
 
 
-    let w = 143
-    let g = 10
-    cx.save()
-    cx.translate(200, 90)
 
-    cx.fillStyle = colors.blue;
-    cx.beginPath()
-    for (let j = 0; j < 6; j++)
-    for (let i = 0; i < 6; i++) {
-        if ((i + j) % 2 === 1) {
-            continue
-        }       
-        cx.roundRect(0 + i * (w + g), j * (w + g), w, w, 8)
-    }
-    cx.fill()
+    let x, y, gap
 
-    cx.fillStyle = colors.pink;
-    cx.beginPath()
-    for (let j = 0; j < 6; j++)
-    for (let i = 0; i < 6; i++) {
-        if ((i + j) % 2 === 0) {
-            continue
+
+    x = 1200
+    y = 140
+
+    gap = 450
+
+    for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 4; j++) {
+            pallette_color(x + i * 100, y + j * 100, pallette_color_to_pico(palette_a.cells[j][i]))
+
+            pallette_color(x + i * 100, gap + y + j * 100, pallette_color_to_pico(palette_b.cells[j][i]))
         }
-        cx.roundRect(0 + i * (w + g), j * (w + g), w, w, 8)
     }
+
+
+
+
+    x = 1560
+    y = 180
+
+    gap = 300
+
+    if (cursor.drag?.shape === shapes.a) {
+        cx.globalAlpha = 0.2
+    }
+    shape(x + 0, y + 0, shapes.a)
+    cx.globalAlpha = 1
+    if (cursor.drag?.shape === shapes.b) {
+        cx.globalAlpha = 0.2
+    }
+    shape(x + 0, y + gap * 1, shapes.b)
+    cx.globalAlpha = 1
+    if (cursor.drag?.shape === shapes.c) {
+        cx.globalAlpha = 0.2
+    }
+    shape(x + 0, y + gap * 2, shapes.c)
+    cx.globalAlpha = 1
+
+
+    if (cursor.drag) {
+        shape(x + cursor.drag.channels.x.value, y + cursor.drag.channels.y.value, cursor.drag.shape)
+    }
+
+    render_cursor(cursor.xy.x, cursor.xy.y)
+
+
+    render_debug()
+}
+
+
+function pallette_color(x: number, y: number, color: Color) {
+
+    cx.fillStyle = color
+    cx.beginPath()
+    cx.moveTo(x + 40, y + 40)
+    cx.arc(x + 40, y + 40, 16, 0, Math.PI * 2)
     cx.fill()
-
-
-
-    cx.restore()
-
-
-    cx.save()
-    cx.translate(1100, 10)
-    let cc = [
-        colors.red,
-        colors.green, 
-        colors.yellow, 
-        colors.sand,
-    ]
-
-    cx.lineWidth = 8
-    for (let i = 0; i < cc.length; i++) {
-        cx.strokeStyle = cc[i]
-        cx.beginPath()
-        cx.roundRect(100, 100 + i * 100, 80, 80, 10)
-
-
-        cx.roundRect(200, 100 + i * 100, 80, 80, 10)
-
-
-        if (i === 0) {
-            cx.roundRect(100, 580, 80, 80, 10)
-            cx.roundRect(100, 680, 80, 80, 10)
-        } else if (i === 1) {
-            cx.roundRect(200, 580, 80, 80, 10)
-            cx.roundRect(200, 680, 80, 80, 10)
-        } else if (i === 2) {
-            cx.roundRect(100, 780, 80, 80, 10)
-            cx.roundRect(100, 880, 80, 80, 10)
-        } else if (i === 3) {
-            cx.roundRect(200, 780, 80, 80, 10)
-            cx.roundRect(200, 880, 80, 80, 10)
-        }
-
-        cx.stroke()
-    }
-
-    for (let i = 0; i < cc.length; i++) {
-        cx.fillStyle = cc[i]
-        cx.beginPath()
-        cx.moveTo(100 + 40, 100 + i * 100 + 40)
-        cx.arc(100 + 40, 100 + i * 100 + 40, 16, 0, Math.PI * 2)
-
-        cx.moveTo(200 + 40, 100 + i * 100 + 40)
-        cx.arc(200 + 40, 100 + i * 100 + 40, 16, 0, Math.PI * 2)
-
-        cx.fill()
-
-    }
-
-    cx.restore()
-    
-
-    cx.save()
-    cx.translate(1500, 40)
 
 
     cx.lineWidth = 8
-    cx.strokeStyle = colors.white
+    cx.strokeStyle = color
+
     cx.beginPath()
-
-    cx.translate(100, 100)
-
-    cx.save()
-
-    cx.translate(drag_channels.a.x.value, drag_channels.a.y.value)
-
-    cx_box(channels.a.value)
-    cx.translate(100, 0)
-    cx_box(channels.b.value)
-    cx.translate(-100, 100)
-    cx_box(channels.c.value)
-
-    cx.restore()
-
-    cx.save()
-
-    cx.translate(drag_channels.b.x.value, drag_channels.b.y.value)
-
-    cx.translate(0, 300)
-    cx_box(channels.a.value)
-    cx.translate(100, 0)
-    cx_box(channels.b.value)
-    cx.translate(-100, 100)
-    cx_box(channels.c.value)
-
-    cx.restore()
-
-
-
-    cx.save()
-
-    cx.translate(drag_channels.c.x.value, drag_channels.c.y.value)
-
-    cx.translate(0, 600)
-    cx_box(channels.a.value)
-    cx.translate(100, 0)
-    cx_box(channels.b.value)
-    cx.translate(-100, 100)
-    cx_box(channels.c.value)
-
-    cx.restore()
-
+    cx.roundRect(x, y, 80, 80, 10)
     cx.stroke()
-    cx.restore()
+}
 
-
-    cx.save()
-    let a = a_box()
-    cx.translate(a.xy.x, a.xy.y)
-    cx.beginPath()
-    cx_box(channels.a.value)
-    cx.fill()
-    cx.clip()
-    cx.fillStyle = colors.red
-    cx.beginPath()
-    cx.arc(30, 30, Math.max(0, a_color_channel.value), 0, Math.PI * 2)
-    cx.fill()
-    cx.restore()
-
-
-    cx.save()
-    cx.translate(cursor.xy.x, cursor.xy.y)
-
+function render_cursor(x: number, y: number) {
     cx.lineWidth = 20
     cx.strokeStyle = colors.black
     cx.beginPath()
-    cx.moveTo(40, 3)
-    cx.lineTo(0, 0)
-    cx.lineTo(3, 40)
+    cx.moveTo(x + 40, y + 3)
+    cx.lineTo(x + 0, y + 0)
+    cx.lineTo(x + 3, y + 40)
     cx.stroke()
+}
 
-    cx.restore()
 
+function render_debug() {
 
     if (COLLISIONS) {
         hitbox_rect(a_box())
@@ -441,15 +423,69 @@ export function _render() {
     }
 }
 
+function shape(x: number, y: number, shape: Shape) {
+    let i_channel = 0
+    let cc = [channels.a, channels.b, channels.c]
+    cx.lineWidth = 8
+    cx.strokeStyle = colors.white
+    cx.beginPath()
+    for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) {
+            if (shape[i][j] === null) {
+                continue
+            }
+            cx_box(x + i * 100, y + j * 100, cc[i_channel++].value)
 
-function cx_box(theta: number) {
-    cx.save()
-    cx.translate(40, 40)
-    cx.rotate(theta)
-    cx.translate(-40, -40)
-    cx.roundRect(0, 0, 80, 80, 10)
-    cx.restore()
+
+        }
+    }
+    cx.stroke()
+
+
+    i_channel = 0
+    for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) {
+            if (shape[i][j] === null) {
+                continue
+            }
+            cx.save()
+            cx.fillStyle = colors.darkblue
+            cx.beginPath()
+            cx_box(x + i * 100, y + j * 100, cc[i_channel++].value)
+            cx.fill()
+            cx.clip()
+            cx.fillStyle = pallette_color_to_pico(shape[i][j])
+            cx.beginPath()
+            cx.arc(30, 30, Math.max(0, a_color_channel.value), 0, Math.PI * 2)
+            cx.fill()
+            cx.restore()
+        }
+    }
+
+
+
 }
+
+
+function cx_box(x: number, y: number, theta: number) {
+    // Calculate rotation center at (40, 40) relative to (x, y)
+    const centerX = x + 40;
+    const centerY = y + 40;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
+
+    // Direct matrix: translate to center, rotate, translate back, then to position
+    cx.setTransform(
+        cos, sin,
+        -sin, cos,
+        centerX - 40 * cos + 40 * sin,  // Combined translation
+        centerY - 40 * sin - 40 * cos
+    );
+
+    cx.roundRect(0, 0, 80, 80, 10);
+    cx.resetTransform();
+}
+
 
 function hitbox_rect(box: Rect) {
 
