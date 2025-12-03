@@ -36,9 +36,7 @@ const palletteB_box = {
 const palletteA_color_boxes = fill_color_boxes(palletteA_box)
 const palletteB_color_boxes = fill_color_boxes(palletteB_box)
 
-let slotA_shape_boxes: Rect[]
-let slotB_shape_boxes: Rect[]
-let slotC_shape_boxes: Rect[]
+let shape_boxes: Record<Slot, Rect[]>
 
 type Color = string
 
@@ -141,6 +139,8 @@ type Shapes = Record<Slot, Shape>
 
 let shapes: Shapes
 
+let locks: Record<Slot, boolean>
+
 let palette_a: Palette
 let palette_b: Palette
 
@@ -165,6 +165,12 @@ export function _init() {
         c: Utils.random_shape()
     }
 
+    locks = {
+        a: false,
+        b: false,
+        c: false
+    }
+
     palette_a = new Palette(2, 4, [
         ['red', 'red'],
         ['green', 'green'],
@@ -183,9 +189,11 @@ export function _init() {
 
 export function _update(delta: number) {
 
-    slotA_shape_boxes = fill_shape_boxes(slotA_box, shapes.a, drag_channels.a.x.value, drag_channels.a.y.value)
-    slotB_shape_boxes = fill_shape_boxes(slotB_box, shapes.b, drag_channels.b.x.value, drag_channels.b.y.value)
-    slotC_shape_boxes = fill_shape_boxes(slotC_box, shapes.c, drag_channels.c.x.value, drag_channels.c.y.value)
+    shape_boxes = {
+        a: fill_shape_boxes(slotA_box, shapes.a, drag_channels.a.x.value, drag_channels.a.y.value),
+        b: fill_shape_boxes(slotB_box, shapes.b, drag_channels.b.x.value, drag_channels.b.y.value - 300 * 1),
+        c: fill_shape_boxes(slotC_box, shapes.c, drag_channels.c.x.value, drag_channels.c.y.value - 300 * 2)
+    }
 
 
     time += delta / 1000
@@ -278,6 +286,8 @@ export function _update(delta: number) {
                 slot: 'c'
             }
         }
+
+
     } else if (drag.is_up) {
 
         if (cursor.drag) {
@@ -300,96 +310,102 @@ export function _update(delta: number) {
 
             drag_channels.c.x.springTo(0, { stiffness: 120, damping: 10 })
             drag_channels.c.y.springTo(300 * 2, { stiffness: 200, damping: 10 })
+
+            let has_filled = shapes[cursor.drag.slot].some(_ => _.some(_ => _ !== null && _ !== 'empty'))
+
+            locks[cursor.drag.slot] = has_filled
         }
     }
 
+    for (let slot of Slots) {
 
-    let i_cell = -1
-    for (let i = 0; i < 2; i++) {
-        shapes: for (let j = 0; j < 2; j++) {
-            if (shapes.a[i][j] === null) {
-                continue
-            }
-            let box = slotA_shape_boxes[++i_cell]
-
-            let is_on_a_color = false
-            let i_pslot = -1
-            for (let pi = 0; pi < 2; pi++) {
-                for (let pj = 0; pj < 4; pj++) {
-
-                    let pbox = palletteA_color_boxes[++i_pslot]
-                    let p_color = palette_a.cells[pj][pi]
-
-                    if (box_intersect_ratio(box, pbox) > 0.4) {
-                        if (shapes.a[i][j] === p_color) {
-                            is_on_a_color = true
-                            continue
-                        }
-
-                        shapes.a[i][j] = p_color
-
-                        let color_channels_front = color_channels_double_buffer.a[i_cell].buffer[color_channels_double_buffer.a[i_cell].i]
-                        let color_channels_back = color_channels_double_buffer.a[i_cell].buffer[(color_channels_double_buffer.a[i_cell].i + 1) % 2]
-
-                        color_channels_back.channel.springTo(0, { stiffness: 600, damping: 60 })
-                        color_channels_front.channel.springTo(100, { stiffness: 300, damping: 30 })
-
-                        color_channels_front.color = p_color
-
-                        color_channels_double_buffer.a[i_cell].i = color_channels_double_buffer.a[i_cell].i === 0 ? 1 : 0
-                        continue shapes
-                    }
-
-
-                    pbox = palletteB_color_boxes[i_pslot]
-                    p_color = palette_b.cells[pj][pi]
-
-                    if (box_intersect_ratio(box, pbox) > 0.3) {
-                        if (shapes.a[i][j] === p_color) {
-                            is_on_a_color = true
-                            continue
-                        }
-
-                        shapes.a[i][j] = p_color
-
-                        let color_channels_front = color_channels_double_buffer.a[i_cell].buffer[color_channels_double_buffer.a[i_cell].i]
-                        let color_channels_back = color_channels_double_buffer.a[i_cell].buffer[(color_channels_double_buffer.a[i_cell].i + 1) % 2]
-
-                        color_channels_back.channel.springTo(0)
-                        color_channels_front.channel.springTo(100)
-
-                        color_channels_front.color = p_color
-
-                        color_channels_double_buffer.a[i_cell].i = color_channels_double_buffer.a[i_cell].i === 0 ? 1 : 0
-                        continue shapes
-                    }
-
+        let i_cell = -1
+        for (let i = 0; i < 2; i++) {
+            shapes: for (let j = 0; j < 2; j++) {
+                if (shapes[slot][i][j] === null) {
+                    continue
                 }
+                let box = shape_boxes[slot][++i_cell]
+
+                let is_on_a_color = false
+                let i_pslot = -1
+                for (let pi = 0; pi < 2; pi++) {
+                    for (let pj = 0; pj < 4; pj++) {
+
+                        let pbox = palletteA_color_boxes[++i_pslot]
+                        let p_color = palette_a.cells[pj][pi]
+
+                        if (box_intersect_ratio(box, pbox) > 0.4) {
+                            if (shapes[slot][i][j] === p_color) {
+                                is_on_a_color = true
+                                continue
+                            }
+
+                            shapes[slot][i][j] = p_color
+
+                            let color_channels_front = color_channels_double_buffer[slot][i_cell].buffer[color_channels_double_buffer[slot][i_cell].i]
+                            let color_channels_back = color_channels_double_buffer[slot][i_cell].buffer[(color_channels_double_buffer[slot][i_cell].i + 1) % 2]
+
+                            color_channels_back.channel.springTo(0, { stiffness: 600, damping: 60 })
+                            color_channels_front.channel.springTo(100, { stiffness: 300, damping: 30 })
+
+                            color_channels_front.color = p_color
+
+                            color_channels_double_buffer[slot][i_cell].i = color_channels_double_buffer[slot][i_cell].i === 0 ? 1 : 0
+                            continue shapes
+                        }
+
+
+                        pbox = palletteB_color_boxes[i_pslot]
+                        p_color = palette_b.cells[pj][pi]
+
+                        if (box_intersect_ratio(box, pbox) > 0.3) {
+                            if (shapes[slot][i][j] === p_color) {
+                                is_on_a_color = true
+                                continue
+                            }
+
+                            shapes[slot][i][j] = p_color
+
+                            let color_channels_front = color_channels_double_buffer[slot][i_cell].buffer[color_channels_double_buffer[slot][i_cell].i]
+                            let color_channels_back = color_channels_double_buffer[slot][i_cell].buffer[(color_channels_double_buffer[slot][i_cell].i + 1) % 2]
+
+                            color_channels_back.channel.springTo(0)
+                            color_channels_front.channel.springTo(100)
+
+                            color_channels_front.color = p_color
+
+                            color_channels_double_buffer[slot][i_cell].i = color_channels_double_buffer[slot][i_cell].i === 0 ? 1 : 0
+                            continue shapes
+                        }
+
+                    }
+                }
+
+                if (box_intersect_ratio(box, palletteA_box) > 0.8 || box_intersect_ratio(box, palletteB_box) > 0.8) {
+                    continue
+                }
+
+                if (is_on_a_color) {
+                    continue
+                }
+
+                if (shapes[slot][i][j] === 'empty') {
+                    continue
+                }
+
+                shapes[slot][i][j] = 'empty'
+
+                let color_channels_front = color_channels_double_buffer[slot][i_cell].buffer[color_channels_double_buffer[slot][i_cell].i]
+                let color_channels_back = color_channels_double_buffer[slot][i_cell].buffer[(color_channels_double_buffer[slot][i_cell].i + 1) % 2]
+
+                color_channels_back.channel.springTo(0)
+                color_channels_front.channel.springTo(100)
+
+                color_channels_front.color = 'empty'
+
+                color_channels_double_buffer[slot][i_cell].i = color_channels_double_buffer[slot][i_cell].i === 0 ? 1 : 0
             }
-
-            if (box_intersect_ratio(box, palletteA_box) > 0.8 || box_intersect_ratio(box, palletteB_box) > 0.8) {
-                continue
-            }
-
-            if (is_on_a_color) {
-                continue
-            }
-
-            if (shapes.a[i][j] === 'empty') {
-                continue
-            }
-
-            shapes.a[i][j] = 'empty'
-
-            let color_channels_front = color_channels_double_buffer.a[i_cell].buffer[color_channels_double_buffer.a[i_cell].i]
-            let color_channels_back = color_channels_double_buffer.a[i_cell].buffer[(color_channels_double_buffer.a[i_cell].i + 1) % 2]
-
-            color_channels_back.channel.springTo(0)
-            color_channels_front.channel.springTo(100)
-
-            color_channels_front.color = 'empty'
-
-            color_channels_double_buffer.a[i_cell].i = color_channels_double_buffer.a[i_cell].i === 0 ? 1 : 0
         }
     }
 
@@ -535,9 +551,9 @@ function render_debug() {
         palletteB_color_boxes.forEach(box => hitbox_rect(box))
 
 
-        slotA_shape_boxes.forEach(box => hitbox_rect(box))
-        slotB_shape_boxes.forEach(box => hitbox_rect(box))
-        slotC_shape_boxes.forEach(box => hitbox_rect(box))
+        shape_boxes.a.forEach(box => hitbox_rect(box))
+        shape_boxes.b.forEach(box => hitbox_rect(box))
+        shape_boxes.c.forEach(box => hitbox_rect(box))
     }
 }
 
