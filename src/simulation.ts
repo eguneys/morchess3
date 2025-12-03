@@ -2,14 +2,45 @@ import { AnimChannel } from "./anim";
 import { cx, drag } from "./canvas"
 import type { SceneName } from "./main"
 import { box_intersect, box_intersect_ratio, type Rect } from "./math/rect";
-import { sub, vec2, type Vec2 } from "./math/vec2";
+import { add, sub, vec2, type Vec2 } from "./math/vec2";
 import { colors } from "./pico_colors";
 import { Palette, Utils, type Color as PaletteColor, type Shape } from "./tetro";
 
-type Color = string
-
 let COLLISIONS = false
-COLLISIONS = true
+//COLLISIONS = true
+
+const slotA_box = { 
+    xy: vec2(1500, 100),
+    wh: vec2(300, 300),
+}
+const slotB_box = { 
+    xy: vec2(1500, 100 + 300 * 1),
+    wh: vec2(300, 300),
+}
+const slotC_box = { 
+    xy: vec2(1500, 100 + 300 * 2),
+    wh: vec2(300, 300),
+}
+
+
+const palletteA_box = {
+    xy: vec2(1200, 140),
+    wh: vec2(200, 400)
+}
+const palletteB_box = {
+    xy: vec2(1200, 140 + 450),
+    wh: vec2(200, 400)
+}
+
+
+const palletteA_color_boxes = fill_color_boxes(palletteA_box)
+const palletteB_color_boxes = fill_color_boxes(palletteB_box)
+
+let slotA_shape_boxes: Rect[]
+let slotB_shape_boxes: Rect[]
+let slotC_shape_boxes: Rect[]
+
+type Color = string
 
 type Cursor = {
     xy: Vec2,
@@ -25,7 +56,8 @@ type Cursor = {
             y: AnimChannel
         },
         shape: Shape,
-        released: boolean
+        released: boolean,
+        slot: Slot
     }
 }
 
@@ -33,29 +65,28 @@ let cursor: Cursor
 
 let time: number = 0
 
-let channels: Record<string, AnimChannel> = {
-    a: new AnimChannel().swayTo({
+type Slot = 'a' | 'b' | 'c'
+const Slots: Slot[] = ['a', 'b', 'c']
+
+let sway_channels = [
+    new AnimChannel().swayTo({
         amplitude: 0.1,
         frequency: 2 - 0.1,
         bias: 0.03
     }),
-    b: new AnimChannel().swayTo({
+    new AnimChannel().swayTo({
         amplitude: 0.1,
         frequency: 2 + 0.1,
         bias: -0.03
     }),
-    c: new AnimChannel().swayTo({
+    new AnimChannel().swayTo({
         amplitude: 0.1 - 0.05,
         frequency: 2.5,
         bias: 0
     })
-}
+]
 
-
-let a_color_channel = new AnimChannel(0)
-
-
-let drag_channels: Record<string, { x: AnimChannel, y: AnimChannel }> = {
+let drag_channels: Record<Slot, { x: AnimChannel, y: AnimChannel }> = {
     a: {
         x: new AnimChannel(),
         y: new AnimChannel()
@@ -70,12 +101,43 @@ let drag_channels: Record<string, { x: AnimChannel, y: AnimChannel }> = {
     },
 }
 
-
-type Shapes = {
-    a: Shape
-    b: Shape
-    c: Shape
+type DoubleBuffer<A> = {
+    buffer: [A, A],
+    i: 0 | 1
 }
+
+type ColorAnimChannel = {
+    color: PaletteColor,
+    channel: AnimChannel
+}
+
+const double_buffer_anim_channels = (): DoubleBuffer<ColorAnimChannel> => ({
+    buffer: [
+        { color: 'empty', channel: new AnimChannel() },
+        { color: 'empty', channel: new AnimChannel() }
+    ],
+    i: 0
+})
+
+let color_channels_double_buffer: Record<Slot, DoubleBuffer<ColorAnimChannel>[]> = {
+    a: [
+        double_buffer_anim_channels(),
+        double_buffer_anim_channels(),
+        double_buffer_anim_channels(),
+    ],
+    b: [
+        double_buffer_anim_channels(),
+        double_buffer_anim_channels(),
+        double_buffer_anim_channels(),
+    ], 
+    c: [
+        double_buffer_anim_channels(),
+        double_buffer_anim_channels(),
+        double_buffer_anim_channels(),
+    ]
+}
+
+type Shapes = Record<Slot, Shape>
 
 let shapes: Shapes
 
@@ -119,27 +181,12 @@ export function _init() {
     ])
 }
 
-
-const conveyor1_box: Rect = {
-    xy: vec2(1550, 100),
-    wh: vec2(280, 280)
-}
-const conveyor2_box: Rect = {
-    xy: vec2(1550, 400),
-    wh: vec2(280, 280)
-}
-const conveyor3_box: Rect = {
-    xy: vec2(1550, 700),
-    wh: vec2(280, 280)
-}
-
-
-const red1_box: Rect = {
-    xy: vec2(1200, 110),
-    wh: vec2(80, 80)
-}
-
 export function _update(delta: number) {
+
+    slotA_shape_boxes = fill_shape_boxes(slotA_box, shapes.a, drag_channels.a.x.value, drag_channels.a.y.value)
+    slotB_shape_boxes = fill_shape_boxes(slotB_box, shapes.b, drag_channels.b.x.value, drag_channels.b.y.value)
+    slotC_shape_boxes = fill_shape_boxes(slotC_box, shapes.c, drag_channels.c.x.value, drag_channels.c.y.value)
+
 
     time += delta / 1000
 
@@ -163,12 +210,11 @@ export function _update(delta: number) {
         }
     }
 
+    let slotA_hit = cursor_hits_box(slotA_box)
+    let slotB_hit = cursor_hits_box(slotB_box)
+    let slotC_hit = cursor_hits_box(slotC_box)
 
-    let conveyor1_hit = cursor_hits_box(conveyor1_box)
-    let conveyor2_hit = cursor_hits_box(conveyor2_box)
-    let conveyor3_hit = cursor_hits_box(conveyor3_box)
-
-    if (conveyor1_hit || conveyor2_hit || conveyor3_hit) {
+    if (slotA_hit || slotB_hit || slotC_hit) {
 
         cursor.follow.x.swayEnabled = false
         cursor.follow.y.swayEnabled = false
@@ -183,14 +229,14 @@ export function _update(delta: number) {
     }
 
     if (drag.is_just_down) {
-        if (conveyor1_hit) {
+        if (slotA_hit) {
 
-            channels.a.swayEnabled = false
-            channels.b.swayEnabled = false
-            channels.c.swayEnabled = false
-            channels.a.springTo(0, { stiffness: 800, damping: 4 })
-            channels.b.springTo(0, { stiffness: 800, damping: 3 })
-            channels.c.springTo(0, { stiffness: 800, damping: 2 })
+            sway_channels[0].swayEnabled = false
+            sway_channels[1].swayEnabled = false
+            sway_channels[2].swayEnabled = false
+            sway_channels[0].springTo(0, { stiffness: 800, damping: 4 })
+            sway_channels[1].springTo(0, { stiffness: 800, damping: 3 })
+            sway_channels[2].springTo(0, { stiffness: 800, damping: 2 })
 
 
             drag_channels.a.x.springTo(-15, {stiffness: 400, damping: 8})
@@ -199,18 +245,19 @@ export function _update(delta: number) {
                 decay: sub(cursor.xy, { x: drag_channels.a.x.value - 15, y: drag_channels.a.y.value -10 } ),
                 channels: drag_channels.a,
                 shape: shapes.a,
-                released: false
+                released: false,
+                slot: 'a'
             }
 
         }
-        if (conveyor2_hit) {
+        if (slotB_hit) {
 
-            channels.a.swayEnabled = false
-            channels.b.swayEnabled = false
-            channels.c.swayEnabled = false
-            channels.a.springTo(0, { stiffness: 800, damping: 4 })
-            channels.b.springTo(0, { stiffness: 800, damping: 3 })
-            channels.c.springTo(0, { stiffness: 800, damping: 2 })
+            sway_channels[0].swayEnabled = false
+            sway_channels[1].swayEnabled = false
+            sway_channels[2].swayEnabled = false
+            sway_channels[0].springTo(0, { stiffness: 800, damping: 4 })
+            sway_channels[1].springTo(0, { stiffness: 800, damping: 3 })
+            sway_channels[2].springTo(0, { stiffness: 800, damping: 2 })
 
 
 
@@ -220,17 +267,18 @@ export function _update(delta: number) {
                 decay: sub(cursor.xy, { x: drag_channels.b.x.value - 15, y: drag_channels.b.y.value - 10 } ),
                 channels: drag_channels.b,
                 shape: shapes.b,
-                released: false
+                released: false,
+                slot: 'b'
             }
         }
-        if (conveyor3_hit) {
+        if (slotC_hit) {
 
-            channels.a.swayEnabled = false
-            channels.b.swayEnabled = false
-            channels.c.swayEnabled = false
-            channels.a.springTo(0, { stiffness: 800, damping: 4 })
-            channels.b.springTo(0, { stiffness: 800, damping: 3 })
-            channels.c.springTo(0, { stiffness: 800, damping: 2 })
+            sway_channels[0].swayEnabled = false
+            sway_channels[1].swayEnabled = false
+            sway_channels[2].swayEnabled = false
+            sway_channels[0].springTo(0, { stiffness: 800, damping: 4 })
+            sway_channels[1].springTo(0, { stiffness: 800, damping: 3 })
+            sway_channels[2].springTo(0, { stiffness: 800, damping: 2 })
 
 
 
@@ -240,20 +288,21 @@ export function _update(delta: number) {
                 decay: sub(cursor.xy, { x: drag_channels.c.x.value - 15, y: drag_channels.c.y.value - 10 } ),
                 channels: drag_channels.c,
                 shape: shapes.c,
-                released: false
+                released: false,
+                slot: 'c'
             }
         }
     } else if (drag.is_up) {
 
         if (cursor.drag) {
 
-            channels.a.swayEnabled = true
-            channels.b.swayEnabled = true
-            channels.c.swayEnabled = true
+            sway_channels[0].swayEnabled = true
+            sway_channels[1].swayEnabled = true
+            sway_channels[2].swayEnabled = true
 
-            channels.a.hold()
-            channels.b.hold()
-            channels.c.hold()
+            sway_channels[0].hold()
+            sway_channels[1].hold()
+            sway_channels[2].hold()
 
             cursor.drag.released = true
 
@@ -269,44 +318,113 @@ export function _update(delta: number) {
     }
 
 
-    let a = a_box()
-    if (a_hits_red(a)) {
-        a_color_channel.springTo(80)
-    } else {
-        a_color_channel.springTo(0)
+    let i_cell = -1
+    for (let i = 0; i < 2; i++) {
+        shapes: for (let j = 0; j < 2; j++) {
+            if (shapes.a[i][j] === null) {
+                continue
+            }
+            let box = slotA_shape_boxes[++i_cell]
+
+            let is_on_a_color = false
+            let i_pslot = -1
+            for (let pi = 0; pi < 2; pi++) {
+                for (let pj = 0; pj < 4; pj++) {
+
+                    let pbox = palletteA_color_boxes[++i_pslot]
+                    let p_color = palette_a.cells[pj][pi]
+
+                    if (box_intersect_ratio(box, pbox) > 0.4) {
+                        if (shapes.a[i][j] === p_color) {
+                            is_on_a_color = true
+                            continue
+                        }
+
+                        shapes.a[i][j] = p_color
+
+                        let color_channels_front = color_channels_double_buffer.a[i_cell].buffer[color_channels_double_buffer.a[i_cell].i]
+                        let color_channels_back = color_channels_double_buffer.a[i_cell].buffer[(color_channels_double_buffer.a[i_cell].i + 1) % 2]
+
+                        color_channels_back.channel.springTo(0, { stiffness: 600, damping: 60 })
+                        color_channels_front.channel.springTo(100, { stiffness: 300, damping: 30 })
+
+                        color_channels_front.color = p_color
+
+                        color_channels_double_buffer.a[i_cell].i = color_channels_double_buffer.a[i_cell].i === 0 ? 1 : 0
+                        continue shapes
+                    }
+
+
+                    pbox = palletteB_color_boxes[i_pslot]
+                    p_color = palette_b.cells[pj][pi]
+
+                    if (box_intersect_ratio(box, pbox) > 0.3) {
+                        if (shapes.a[i][j] === p_color) {
+                            is_on_a_color = true
+                            continue
+                        }
+
+                        shapes.a[i][j] = p_color
+
+                        let color_channels_front = color_channels_double_buffer.a[i_cell].buffer[color_channels_double_buffer.a[i_cell].i]
+                        let color_channels_back = color_channels_double_buffer.a[i_cell].buffer[(color_channels_double_buffer.a[i_cell].i + 1) % 2]
+
+                        color_channels_back.channel.springTo(0)
+                        color_channels_front.channel.springTo(100)
+
+                        color_channels_front.color = p_color
+
+                        color_channels_double_buffer.a[i_cell].i = color_channels_double_buffer.a[i_cell].i === 0 ? 1 : 0
+                        continue shapes
+                    }
+
+                }
+            }
+
+            if (box_intersect_ratio(box, palletteA_box) > 0.8 || box_intersect_ratio(box, palletteB_box) > 0.8) {
+                continue
+            }
+
+            if (is_on_a_color) {
+                continue
+            }
+
+            if (shapes.a[i][j] === 'empty') {
+                continue
+            }
+
+            shapes.a[i][j] = 'empty'
+
+            let color_channels_front = color_channels_double_buffer.a[i_cell].buffer[color_channels_double_buffer.a[i_cell].i]
+            let color_channels_back = color_channels_double_buffer.a[i_cell].buffer[(color_channels_double_buffer.a[i_cell].i + 1) % 2]
+
+            color_channels_back.channel.springTo(0)
+            color_channels_front.channel.springTo(100)
+
+            color_channels_front.color = 'empty'
+
+            color_channels_double_buffer.a[i_cell].i = color_channels_double_buffer.a[i_cell].i === 0 ? 1 : 0
+        }
     }
 
 
-    a_color_channel.update(delta / 1000)
-    for (let key of Object.keys(channels)) {
-        channels[key].update(delta / 1000)
-    }
 
-    for (let key of Object.keys(drag_channels)) {
+    for (let i = 0; i < 3; i++)
+        sway_channels[i].update(delta / 1000)
+    for (let key of Slots) {
         drag_channels[key].x.update(delta / 1000)
         drag_channels[key].y.update(delta / 1000)
+        for (let i = 0; i < 3; i++) {
+            color_channels_double_buffer[key][i].buffer[0].channel.update(delta / 1000)
+            color_channels_double_buffer[key][i].buffer[1].channel.update(delta / 1000)
+        }
     }
 
 
-
-}
-
-
-function a_box(): Rect {
-    let x = drag_channels.a.x.value
-    let y = drag_channels.a.y.value
-    return {
-        xy: vec2(x + 1600, y + 140),
-        wh: vec2(80, 80)
-    }
 }
 
 function cursor_hits_box(box: Rect) {
     return box_intersect(cursor, box)
-}
-
-function a_hits_red(box: Rect) {
-    return box_intersect_ratio(red1_box, box) > 0.5
 }
 
 function pallette_color_to_pico(color: PaletteColor): Color {
@@ -357,23 +475,29 @@ export function _render() {
 
     if (cursor.drag?.shape === shapes.a) {
         cx.globalAlpha = 0.2
+        cx.setLineDash([10])
     }
-    shape(x + 0, y + 0, shapes.a)
+    shape(x + 0, y + 0, shapes.a, 'a')
     cx.globalAlpha = 1
+    cx.setLineDash([])
     if (cursor.drag?.shape === shapes.b) {
         cx.globalAlpha = 0.2
+        cx.setLineDash([10])
     }
-    shape(x + 0, y + gap * 1, shapes.b)
+    shape(x + 0, y + gap * 1, shapes.b, 'b')
     cx.globalAlpha = 1
+    cx.setLineDash([])
     if (cursor.drag?.shape === shapes.c) {
         cx.globalAlpha = 0.2
+        cx.setLineDash([10])
     }
-    shape(x + 0, y + gap * 2, shapes.c)
+    shape(x + 0, y + gap * 2, shapes.c, 'c')
     cx.globalAlpha = 1
+    cx.setLineDash([])
 
 
     if (cursor.drag) {
-        shape(x + cursor.drag.channels.x.value, y + cursor.drag.channels.y.value, cursor.drag.shape)
+        shape(x + cursor.drag.channels.x.value, y + cursor.drag.channels.y.value, cursor.drag.shape, cursor.drag.slot)
     }
 
     render_cursor(cursor.xy.x, cursor.xy.y)
@@ -414,18 +538,25 @@ function render_cursor(x: number, y: number) {
 function render_debug() {
 
     if (COLLISIONS) {
-        hitbox_rect(a_box())
-        hitbox_rect(conveyor1_box)
-        hitbox_rect(conveyor2_box)
-        hitbox_rect(conveyor3_box)
+        hitbox_rect(slotA_box)
+        hitbox_rect(slotB_box)
+        hitbox_rect(slotC_box)
         hitbox_rect(cursor)
-        hitbox_rect(red1_box)
+        //hitbox_rect(palletteA_box)
+        //hitbox_rect(palletteB_box)
+
+        palletteA_color_boxes.forEach(box => hitbox_rect(box))
+        palletteB_color_boxes.forEach(box => hitbox_rect(box))
+
+
+        slotA_shape_boxes.forEach(box => hitbox_rect(box))
+        slotB_shape_boxes.forEach(box => hitbox_rect(box))
+        slotC_shape_boxes.forEach(box => hitbox_rect(box))
     }
 }
 
-function shape(x: number, y: number, shape: Shape) {
-    let i_channel = 0
-    let cc = [channels.a, channels.b, channels.c]
+function shape(x: number, y: number, shape: Shape, slot: Slot) {
+    let i_cell = 0
     cx.lineWidth = 8
     cx.strokeStyle = colors.white
     cx.beginPath()
@@ -434,7 +565,7 @@ function shape(x: number, y: number, shape: Shape) {
             if (shape[i][j] === null) {
                 continue
             }
-            cx_box(x + i * 100, y + j * 100, cc[i_channel++].value)
+            cx_box(x + i * 100, y + j * 100, sway_channels[i_cell++].value)
 
 
         }
@@ -442,7 +573,7 @@ function shape(x: number, y: number, shape: Shape) {
     cx.stroke()
 
 
-    i_channel = 0
+    i_cell = 0
     for (let i = 0; i < 2; i++) {
         for (let j = 0; j < 2; j++) {
             if (shape[i][j] === null) {
@@ -451,19 +582,23 @@ function shape(x: number, y: number, shape: Shape) {
             cx.save()
             cx.fillStyle = colors.darkblue
             cx.beginPath()
-            cx_box(x + i * 100, y + j * 100, cc[i_channel++].value)
+            cx_box(x + i * 100, y + j * 100, sway_channels[i_cell].value)
             cx.fill()
             cx.clip()
-            cx.fillStyle = pallette_color_to_pico(shape[i][j])
             cx.beginPath()
-            cx.arc(30, 30, Math.max(0, a_color_channel.value), 0, Math.PI * 2)
+            let color_channel_back = color_channels_double_buffer[slot][i_cell].buffer[0]
+            let color_channel_front = color_channels_double_buffer[slot][i_cell].buffer[1]
+            cx.fillStyle = pallette_color_to_pico(color_channel_back.color)
+            cx.arc(x + i * 100 + 10, y + j * 100 + 10, Math.max(0, color_channel_back.channel.value), 0, Math.PI * 2)
+            cx.fill()
+            cx.beginPath()
+            cx.fillStyle = pallette_color_to_pico(color_channel_front.color)
+            cx.arc(x + i * 100 + 70, y + j * 100 + 70, Math.max(0, color_channel_front.channel.value), 0, Math.PI * 2)
             cx.fill()
             cx.restore()
+            i_cell++
         }
     }
-
-
-
 }
 
 
@@ -489,7 +624,8 @@ function cx_box(x: number, y: number, theta: number) {
 
 function hitbox_rect(box: Rect) {
 
-    cx.lineWidth = 16
+    cx.setLineDash([10])
+    cx.lineWidth = 7
     let x = box.xy.x
     let y = box.xy.y
     let w = box.wh.x
@@ -498,6 +634,39 @@ function hitbox_rect(box: Rect) {
     cx.strokeStyle = 'red'
     cx.strokeRect(x, y, w, h)
 
+    cx.setLineDash([])
+}
+
+
+function fill_color_boxes(box: Rect) {
+    let res: Rect[] = []
+    for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 4; j++) {
+            res.push({
+                xy: add(box.xy, vec2(i * 100, j * 100)),
+                wh: vec2(80, 80)
+            })
+        }
+    }
+    return res
+}
+
+function fill_shape_boxes(box: Rect, shape: Shape, ox: number, oy: number) {
+    let res: Rect[] = []
+    for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) {
+            if (shape[i][j] === null) {
+                continue
+            }
+            let off_x = 60
+            let off_y = 80
+            res.push({
+                xy: add(box.xy, vec2(ox + off_x + i * 100, oy + off_y + j * 100)),
+                wh: vec2(80, 80)
+            })
+        }
+    }
+    return res
 }
 
 let set_next_scene: SceneName | undefined = undefined

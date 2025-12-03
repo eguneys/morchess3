@@ -29,8 +29,9 @@ export function box_intersect_ratio(a: Rect, b: Rect): number {
 
     // Calculate areas
     const intersectionArea = (x2 - x1) * (y2 - y1);
-    const unionArea = (aw * ah) + (bw * bh) - intersectionArea;
+    //const unionArea = (aw * ah) + (bw * bh) - intersectionArea;
 
     // Return Intersection over Union (IoU)
-    return intersectionArea / unionArea;
+    //return intersectionArea / unionArea;
+    return intersectionArea / (aw * ah);
 }

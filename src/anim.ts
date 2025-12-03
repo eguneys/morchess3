@@ -55,6 +55,7 @@ export class AnimChannel {
 
     constructor(startValue = 0) {
         this.baseValue = startValue;
+        this.value = this.baseValue
     }
 
     // -------------------
