@@ -501,13 +501,32 @@ function update_grid(delta: number) {
 
             if (drag.is_up) {
 
+                let has_placed_on_grid = false
                 for (let i = 0; i < 8; i++) {
                     for (let j = 0; j < 8; j++) {
                         if (grid_cell_colors[i][j] !== null) {
                             grid_cell_locked_colors[i][j] = grid_cell_colors[i][j]
                             grid_cell_colors[i][j] = null
+                            has_placed_on_grid = true
                         }
                     }
+                }
+
+                if (has_placed_on_grid) {
+                    locks[cursor.drag.slot] = false
+
+                    shapes[cursor.drag.slot] = Utils.random_shape()
+                    // TODO remove cursor drag completely
+                    cursor.drag.shape = shapes[cursor.drag.slot]
+
+                    color_channels_double_buffer[cursor.drag.slot] = [
+                        double_buffer_anim_channels(),
+                        double_buffer_anim_channels(),
+                        double_buffer_anim_channels(),
+                    ]
+
+
+
                 }
             }
         }
