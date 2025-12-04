@@ -50,6 +50,31 @@ export class Utils {
     }
     return out;
   }
+
+
+  static ij(shape: Shape, gridX: number, gridY: number): [number, number][] | null {
+    let res: [number, number][] = []
+
+    let off_xy
+    for (let i = 0; i < 2; i++) {
+      for (let j = 0; j < 2; j++) {
+        if (shape[i][j] === null) {
+          continue
+        }
+        if (off_xy === undefined) {
+          off_xy = [i, j]
+        }
+        let gridXi = gridX + i - off_xy[0]
+        let gridYj = gridY + j - off_xy[1]
+        if (gridXi < 0 || gridXi >= 8 || gridYj < 0 || gridYj >= 8) {
+          return null
+        }
+        res.push([gridXi, gridYj])
+      }
+    }
+
+    return res
+  }
 }
 
 export class Palette {
@@ -102,7 +127,7 @@ export class Grid {
     return x >= 0 && x < this.cols && y >= 0 && y < this.rows;
   }
 
-  private get(x: number, y: number) {
+  get(x: number, y: number) {
     if (!this.inside(x, y)) return null;
     return this.cells[y][x];
   }

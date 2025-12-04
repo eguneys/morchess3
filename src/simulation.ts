@@ -9,6 +9,13 @@ import { Palette, Utils, type Color as PaletteColor, type Shape } from "./tetro"
 let COLLISIONS = false
 //COLLISIONS = true
 
+const grid_box = {
+    xy: vec2(150, 150),
+    wh: vec2(8 * 110, 8 * 110)
+}
+
+const grid_color_boxes = fill_grid_boxes()
+
 const slotA_box = { 
     xy: vec2(1500, 100),
     wh: vec2(300, 300),
@@ -143,6 +150,12 @@ let locks: Record<Slot, boolean>
 
 let palette_a: Palette
 let palette_b: Palette
+
+let show_no_drop_overlay_alpha = new AnimChannel()
+
+let grid_cell_alphas: AnimChannel[][] = fill_grid64_anim_channels()
+let grid_cell_colors: PaletteColor[][] = fill_grid64_colors()
+let grid_cell_locked_colors: PaletteColor[][] = fill_grid64_colors()
 
 export function _init() {
     time = 0
@@ -300,7 +313,6 @@ export function _update(delta: number) {
             sway_channels[1].hold()
             sway_channels[2].hold()
 
-            cursor.drag.released = true
 
             drag_channels.a.x.springTo(0, { stiffness: 120, damping: 10 })
             drag_channels.a.y.springTo(0, { stiffness: 200, damping: 10 })
@@ -427,7 +439,105 @@ export function _update(delta: number) {
         }
     }
 
+    update_grid(delta)
 
+
+    if (drag.is_up) {
+        if (cursor.drag) {
+            cursor.drag.released = true
+        }
+    }
+
+}
+
+
+function update_grid(delta: number) {
+
+    if (cursor.drag && !cursor.drag.released) {
+
+        let a_hit = shape_boxes[cursor.drag.slot].some(box => box_intersect(grid_box, box))
+
+        if (!locks[cursor.drag.slot]) {
+            if (a_hit) {
+                show_no_drop_overlay_alpha.springTo(0.7, { stiffness: 1000, damping: 80})
+            } else {
+                show_no_drop_overlay_alpha.springTo(0)
+            }
+        }
+
+        if (a_hit) {
+            if (locks[cursor.drag.slot]) {
+
+                let matched_ij
+                grid: for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        if (box_intersect_ratio(shape_boxes[cursor.drag.slot][0], grid_color_boxes[i][j]) > 0.3) {
+                            let shape_ij = Utils.ij(cursor.drag.shape, i, j)
+                            console.log(i, j, shape_ij)
+                            if (shape_ij === null) {
+                                break grid
+                            }
+                            matched_ij = shape_ij
+                            
+                            break grid
+                        }
+                    }
+                }
+
+                let i_cell = 0
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        if (matched_ij && matched_ij.find(_ => _[0] === i && _[1] === j)) {
+                            grid_cell_colors[i][j] = shape_i_cell(cursor.drag.shape, i_cell++)
+                            grid_cell_alphas[i][j].springTo(1)
+                        } else {
+                            grid_cell_colors[i][j] = grid_cell_locked_colors[i][j]
+                            grid_cell_alphas[i][j].springTo(0)
+                        }
+                    }
+                }
+            }
+
+
+            if (drag.is_up) {
+
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        if (grid_cell_colors[i][j] !== null) {
+                            grid_cell_locked_colors[i][j] = grid_cell_colors[i][j]
+                            grid_cell_colors[i][j] = null
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (drag.is_up) {
+        show_no_drop_overlay_alpha.springTo(0)
+    }
+    
+    show_no_drop_overlay_alpha.update(delta / 1000)
+
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            grid_cell_alphas[i][j].update(delta / 1000)
+        }
+    }
+}
+
+function shape_i_cell(shape: Shape, i_cell: number): PaletteColor {
+    for (let i = 0; i < 2; i++) {
+        for (let j = 0; j < 2; j++) {
+            if (shape[i][j] === null) {
+                continue
+            }
+            if (i_cell-- === 0) {
+                return shape[i][j]
+            }
+        }
+    }
+    return null
 }
 
 function cursor_hits_box(box: Rect) {
@@ -504,6 +614,8 @@ export function _render() {
 
     render_guides()
 
+    render_grid()
+
     if (cursor.drag) {
         shape(x + cursor.drag.channels.x.value, y + cursor.drag.channels.y.value, cursor.drag.shape, cursor.drag.slot)
     }
@@ -512,6 +624,112 @@ export function _render() {
 
 
     render_debug()
+}
+
+function render_grid() {
+
+    let x, y
+
+    x = 150
+    y = 150
+
+    let w = 110
+    cx.lineWidth = 4
+    cx.strokeStyle = colors.pink
+    cx.beginPath()
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if ((i + j) % 2 === 0) {
+                continue
+            }
+
+            cx.roundRect(x + i * w + 8, y + j * w + 8, w - 16, w - 16, 16)
+        }
+    }
+    cx.stroke()
+
+    cx.strokeStyle = colors.blue
+    cx.beginPath()
+    for (let i = 0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+            if ((i + j) % 2 === 1) {
+                continue
+            }
+
+            cx.roundRect(x + i * w, y + j * w, w, w, 16)
+        }
+    }
+    cx.stroke()
+
+    {
+        cx.strokeStyle = colors.darkblue
+        cx.beginPath()
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                if ((i + j) % 2 === 0) {
+                    continue
+                }
+
+                cx.roundRect(x + i * w + 8 + 4, y + j * w + 8 + 4, w - 16 - 8, w - 16 -8, 16)
+            }
+        }
+        cx.stroke()
+
+        cx.strokeStyle = colors.darkblue
+        cx.beginPath()
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                if ((i + j) % 2 === 1) {
+                    continue
+                }
+
+                cx.roundRect(x + i * w + 4, y + j * w + 4, w - 8, w - 8, 16)
+            }
+        }
+        cx.stroke()
+
+
+    }
+
+    for (let i =0; i < 8; i++) {
+        for (let j = 0; j < 8; j++) {
+
+            cx.save()
+            cx.beginPath()
+            if ((i + j) % 2 === 1) {
+                cx.roundRect(x + i * w + 8 + 2 + 4, y + j * w + 8 + 2 + 4, w - 16 - 4 - 8, w - 16 - 4 - 8, 16)
+            } else {
+                cx.roundRect(x + i * w + 2 + 4, y + j * w + 2 + 4, w - 4 -8, w - 4 - 8, 16)
+            }
+            cx.clip()
+
+            cx.fillStyle = pallette_color_to_pico(grid_cell_locked_colors[i][j])
+            cx.beginPath()
+            cx.roundRect(x + i * w, y + j * w, w, w, 16)
+            cx.fill()
+
+            if (grid_cell_colors[i][j] !== null) {
+                cx.globalAlpha = Math.max(0, grid_cell_alphas[i][j].value)
+                cx.fillStyle = pallette_color_to_pico(grid_cell_colors[i][j])
+                cx.beginPath()
+                cx.roundRect(x + i * w, y + j * w, w, w, 16)
+                cx.fill()
+                cx.globalAlpha = 1
+            }
+            cx.restore()
+        }
+    }
+
+
+    if (show_no_drop_overlay_alpha.value > 0) {
+        cx.globalAlpha = show_no_drop_overlay_alpha.value
+        cx.fillStyle = colors.gray
+        cx.beginPath()
+        cx.roundRect(x - 8, y - 8, 8 * w + 16, 8 * w + 16, 16)
+        cx.fill()
+        cx.globalAlpha = 1
+    }
+
 }
 
 function render_guides() {
@@ -598,6 +816,14 @@ function render_debug() {
         shape_boxes.a.forEach(box => hitbox_rect(box))
         shape_boxes.b.forEach(box => hitbox_rect(box))
         shape_boxes.c.forEach(box => hitbox_rect(box))
+
+        hitbox_rect(grid_box)
+
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                hitbox_rect(grid_color_boxes[i][j])
+            }
+        }
     }
 }
 
@@ -710,6 +936,45 @@ function fill_shape_boxes(box: Rect, shape: Shape, ox: number, oy: number) {
                 wh: vec2(80, 80)
             })
         }
+    }
+    return res
+}
+
+function fill_grid_boxes() {
+    let res: Rect[][] = []
+    for (let i = 0; i < 8; i++) {
+        let a = []
+        for (let j = 0; j < 8; j++) {
+            a.push({
+                xy: add(grid_box.xy, vec2(i * 110, j * 110)),
+                wh: vec2(110, 110)
+            })
+        }
+        res.push(a)
+    }
+    return res
+}
+
+function fill_grid64_anim_channels() {
+    let res = []
+    for (let i = 0; i < 8; i++) {
+        let a = []
+        for (let j = 0; j < 8; j++) {
+            a.push(new AnimChannel())
+        }
+        res.push(a)
+    }
+    return res
+}
+
+function fill_grid64_colors() {
+    let res = []
+    for (let i = 0; i < 8; i++) {
+        let a = []
+        for (let j = 0; j < 8; j++) {
+            a.push(null)
+        }
+        res.push(a)
     }
     return res
 }
