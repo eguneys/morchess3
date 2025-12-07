@@ -187,18 +187,18 @@ export function _update(delta: number) {
 
 }
 
-function update_aligns(delta: number) {
+function update_aligns(_delta: number) {
 
     let board = build_board_from_pieces()
 
     let current_aligns = board_aligns_data(board)
-    let target_aligns = target_aligns_data
+    //let target_aligns = target_aligns_data
     let model = model_aligns
 
     model.forEach(_ => _.stick = 0)
 
     for (let cu of current_aligns) {
-        let tu = target_aligns.find(_ => _.x === cu.x && _.y === cu.y)
+        //let tu = target_aligns.find(_ => _.x === cu.x && _.y === cu.y)
         let mu = model.find(_ => _.data.x === cu.x && _.data.y === cu.y)
 
         if (!mu) {
