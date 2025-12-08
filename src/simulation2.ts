@@ -130,8 +130,8 @@ export function _update(delta: number) {
 
     time += delta / 1000
 
-    cursor.follow.x.followTo(drag.is_hovering[0])
-    cursor.follow.y.followTo(drag.is_hovering[1])
+    cursor.follow.x.followTo(drag.is_hovering[0], { speed: 1 - 1e-8 })
+    cursor.follow.y.followTo(drag.is_hovering[1], { speed: 1 - 1e-8 })
 
     cursor.follow.x.update(delta / 1000)
     cursor.follow.y.update(delta / 1000)
