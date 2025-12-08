@@ -1,9 +1,9 @@
 import type { SceneName } from "./main"
-import { cx, drag } from "./canvas"
-import { colors, vibrant } from "./pico_colors"
+import { batch, drag } from "./webgl/canvas"
 import { add, mulScalar, sub, vec2, type Vec2 } from "./math/vec2"
 import { AnimChannel } from "./anim"
-import { hitbox_rect } from "./simulation"
+//import { hitbox_rect } from "./simulation"
+import { colors, vibrant } from './colors_in_gl'
 import type { Rect } from "./math/rect"
 import type { Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
@@ -122,10 +122,6 @@ export function _init() {
             y: new AnimChannel().swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
         }
     }
-
-    cx.lineCap = 'round'
-    cx.lineJoin = 'round'
-
 }
 
 export function _update(delta: number) {
@@ -291,18 +287,21 @@ function update_align(align: Aligns, nb: number, delta: number) {
 
 export function _render() {
 
-    cx.fillStyle = colors.darkblue
-    cx.fillRect(0, 0, 1920, 1080)
+    batch.beginFrame()
+
+    batch.fillRect(1920/2, 1080/2, 1920, 1080, colors.darkblue)
 
     render_grid()
 
     for (let piece of pieces_on_board) {
         render_piece(piece)
     }
+
     render_cursor(cursor.xy.x, cursor.xy.y)
 
-
     render_debug()
+
+    batch.endFrame()
 }
 
 function render_debug() {
@@ -330,7 +329,6 @@ function render_piece(piece: PieceOnBoard) {
         render_aligns(x, y, align.data.y, align.stick)
     }
 
-
     for (let align of model_mis_aligns) {
         let x = align.piece.xy.x.value
         let y = align.piece.xy.y.value
@@ -342,12 +340,10 @@ function render_piece(piece: PieceOnBoard) {
 
 
 function render_mis_aligns(x: number, y: number, pieces: Pieces, stick: Direction) {
-    cx.lineWidth = 4
-    cx.strokeStyle = stick === 0 ? colors.red : colors.red
-    cx.beginPath()
-    cx.roundRect(x - 15, y - 15, 30, 30, 6)
-    cx.stroke()
-    cx.fill()
+    let thick = 1
+    let color = stick === 0 ? colors.red : colors.red
+    batch.fillRoundRect(x, y, 46, 46, 6, colors.darkblue)
+    batch.strokeRoundRect(x, y, 46, 46, 6, thick, color)
 
 
     render_mini_role(x, y, pieces)
@@ -356,12 +352,11 @@ function render_mis_aligns(x: number, y: number, pieces: Pieces, stick: Directio
 
 
 function render_aligns(x: number, y: number, pieces: Pieces, stick: Direction) {
-    cx.lineWidth = 4
-    cx.strokeStyle = stick === 0 ? colors.red : colors.green
-    cx.beginPath()
-    cx.roundRect(x - 15, y - 15, 30, 30, 6)
-    cx.stroke()
-    cx.fill()
+    let thick = 1
+    let color =  stick === 0 ? colors.red : colors.green
+
+    batch.fillRoundRect(x, y, 46, 46, 6, colors.darkblue)
+    batch.strokeRoundRect(x, y, 46, 46, 6, thick, color)
 
     render_mini_role(x, y, pieces)
 }
@@ -370,133 +365,80 @@ const yellow_colors = [vibrant.yellow, vibrant.white, vibrant.blue, vibrant.pink
 
 function render_mini_role(x: number, y: number, pieces: Pieces) {
 
-    cx.strokeStyle = yellow_colors[parseInt(pieces[1]) - 1]
+    let color = yellow_colors[parseInt(pieces[1]) - 1]
+    let thick = 4
 
     if (pieces[0] === 'r') {
-        cx.beginPath()
-        cx.moveTo(x - 10, y)
-        cx.lineTo(x + 10, y)
-        cx.moveTo(x, y - 10)
-        cx.lineTo(x, y + 10)
-        cx.stroke()
+        batch.strokeLine(x - 10, y, x + 10, y, thick, color)
+        batch.strokeLine(x, y - 10, x, y + 10, thick, color)
     }
 
     if (pieces[0] === 'b') {
-        cx.beginPath()
-        cx.moveTo(x - 10, y - 10)
-        cx.lineTo(x + 10, y + 10)
-        cx.moveTo(x - 10, y + 10)
-        cx.lineTo(x + 10, y - 10)
-        cx.stroke()
+        batch.strokeLine(x - 8, y - 8, x + 8, y + 8, thick, color)
+        batch.strokeLine(x - 8, y + 8, x + 8, y - 8, thick, color)
     }
     if (pieces[0] === 'P') {
-        cx.beginPath()
-        cx.moveTo(x - 10, y - 10)
-        cx.lineTo(x, y)
-        cx.moveTo(x + 10, y - 10)
-        cx.lineTo(x, y)
-        cx.lineTo(x, y + 5)
-        cx.stroke()
+        batch.strokeLine(x - 8, y - 8, x, y, thick, color)
+        batch.strokeLine(x + 8, y - 8, x, y, thick, color)
+        batch.strokeLine(x, y, x, y + 4, thick, color)
     }
     if (pieces[0] === 'p') {
-        cx.beginPath()
-        cx.moveTo(x - 10, y + 10)
-        cx.lineTo(x, y)
-        cx.moveTo(x + 10, y + 10)
-        cx.lineTo(x, y)
-        cx.lineTo(x, y - 5)
-        cx.stroke()
+        batch.strokeLine(x - 8, y + 8, x, y, thick, color)
+        batch.strokeLine(x + 8, y + 8, x, y, thick, color)
+        batch.strokeLine(x, y, x, y - 4, thick, color)
     }
     if (pieces[0] === 'k') {
-        cx.beginPath()
-        cx.roundRect(x - 10, y - 10, 20, 20, 4)
-        cx.stroke()
+        batch.strokeRoundRect(x, y, 20, 20, 4, thick, color)
     }
 
     if (pieces[0] === 'n') {
-        cx.beginPath()
-        cx.moveTo(x - 5, y - 10)
-        cx.lineTo(x - 5, y + 10)
-        cx.lineTo(x + 5, y + 10)
-        cx.stroke()
+        batch.strokeLine(x - 4, y - 8, x - 4, y + 8, thick, color)
+        batch.strokeLine(x - 4, y + 8, x + 4, y + 8, thick, color)
     }
     if (pieces[0] === 'q') {
-        cx.beginPath()
-        cx.moveTo(x - 10, y - 10)
-        cx.lineTo(x + 10, y + 10)
-        cx.moveTo(x - 10, y + 10)
-        cx.lineTo(x + 10, y - 10)
-        cx.moveTo(x - 12, y)
-        cx.lineTo(x + 12, y)
-        cx.moveTo(x, y - 12)
-        cx.lineTo(x, y + 12)
-        cx.stroke()
+        batch.strokeLine(x - 10, y, x + 10, y, thick, color)
+        batch.strokeLine(x, y - 10, x, y + 10, thick, color)
+        batch.strokeLine(x - 8, y - 8, x + 8, y + 8, thick, color)
+        batch.strokeLine(x - 8, y + 8, x + 8, y - 8, thick, color)
     }
 
 }
 
 function render_role(x: number, y: number, pieces: Pieces) {
 
-    cx.strokeStyle = yellow_colors[parseInt(pieces[1]) - 1]
-    cx.lineWidth = 9
+    let color = yellow_colors[parseInt(pieces[1]) - 1]
+    let thick = 9
 
     if (pieces[0] === 'b') {
-        cx.beginPath()
-        cx.moveTo(x - 20, y - 20)
-        cx.lineTo(x + 20, y + 20)
-        cx.moveTo(x - 20, y + 20)
-        cx.lineTo(x + 20, y - 20)
-        cx.stroke()
+        batch.strokeLine(x - 20, y - 20, x + 20, y + 20, thick, color)
+        batch.strokeLine(x - 20, y + 20, x + 20, y - 20, thick, color)
     }
     if (pieces[0] === 'r') {
-        cx.beginPath()
-        cx.moveTo(x - 25, y)
-        cx.lineTo(x + 25, y)
-        cx.moveTo(x, y - 25)
-        cx.lineTo(x, y + 25)
-        cx.stroke()
+        batch.strokeLine(x - 25, y, x + 25, y, thick, color)
+        batch.strokeLine(x, y - 25, x, y + 25, thick, color)
     }
     if (pieces[0] === 'P') {
-        cx.beginPath()
-        cx.moveTo(x - 20, y - 20)
-        cx.lineTo(x, y)
-        cx.moveTo(x + 20, y - 20)
-        cx.lineTo(x, y)
-        cx.lineTo(x, y + 10)
-        cx.stroke()
+        batch.strokeLine(x - 20, y - 20, x, y, thick, color)
+        batch.strokeLine(x + 20, y - 20, x, y, thick, color)
+        batch.strokeLine(x, y, x, y + 10, thick, color)
     }
     if (pieces[0] === 'p') {
-        cx.beginPath()
-        cx.moveTo(x - 20, y + 20)
-        cx.lineTo(x, y)
-        cx.moveTo(x + 20, y + 20)
-        cx.lineTo(x, y)
-        cx.lineTo(x, y - 10)
-        cx.stroke()
+        batch.strokeLine(x - 20, y + 20, x, y, thick, color)
+        batch.strokeLine(x + 20, y + 20, x, y, thick, color)
+        batch.strokeLine(x, y, x, y - 10, thick, color)
     }
     if (pieces[0] === 'k') {
-        cx.beginPath()
-        cx.roundRect(x - 27, y - 27, 54, 54, 10)
-        cx.stroke()
+        batch.strokeRoundRect(x, y, 64, 64, 10, thick, color)
     }
     if (pieces[0] === 'n') {
-        cx.beginPath()
-        cx.moveTo(x - 10, y - 20)
-        cx.lineTo(x - 10, y + 20)
-        cx.lineTo(x + 10, y + 20)
-        cx.stroke()
+        batch.strokeLine(x - 10, y - 20, x - 10, y + 20, thick, color)
+        batch.strokeLine(x - 10, y + 20, x + 10, y + 20, thick, color)
     }
     if (pieces[0] === 'q') {
-        cx.beginPath()
-        cx.moveTo(x - 20, y - 20)
-        cx.lineTo(x + 20, y + 20)
-        cx.moveTo(x - 20, y + 20)
-        cx.lineTo(x + 20, y - 20)
-        cx.moveTo(x - 22, y)
-        cx.lineTo(x + 22, y)
-        cx.moveTo(x, y - 22)
-        cx.lineTo(x, y + 22)
-        cx.stroke()
+        batch.strokeLine(x - 20, y - 20, x + 20, y + 20, thick, color)
+        batch.strokeLine(x - 20, y + 20, x + 20, y - 20, thick, color)
+        batch.strokeLine(x - 22, y, x + 22, y, thick, color)
+        batch.strokeLine(x, y - 22, x, y + 22, thick, color)
     }
 }
 
@@ -508,76 +450,32 @@ function render_grid() {
     y = 60
 
     let w = 120
-    cx.lineWidth = 4
-    cx.strokeStyle = colors.pink
-    cx.beginPath()
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
             if ((i + j) % 2 === 0) {
-                continue
-            }
-
-            cx.roundRect(x + i * w + 8, y + j * w + 8, w - 16, w - 16, 16)
-        }
-    }
-    cx.stroke()
-
-    cx.strokeStyle = colors.blue
-    cx.beginPath()
-    for (let i = 0; i < 8; i++) {
-        for (let j = 0; j < 8; j++) {
-            if ((i + j) % 2 === 1) {
-                continue
-            }
-
-            cx.roundRect(x + i * w, y + j * w, w, w, 16)
-        }
-    }
-    cx.stroke()
-
-    {
-        cx.strokeStyle = colors.darkblue
-        cx.beginPath()
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                if ((i + j) % 2 === 0) {
-                    continue
-                }
-
-                cx.roundRect(x + i * w + 8 + 4, y + j * w + 8 + 4, w - 16 - 8, w - 16 -8, 16)
+                batch.strokeRoundRect(x + i * w + w/ 2, y + j * w + w/ 2, w + 16, w + 16, 16, 3, colors.pink)
+            } else {
+                batch.strokeRoundRect(x + i * w + w / 2, y + j * w + w / 2, w + 32, w + 32, 16, 3, colors.blue)
             }
         }
-        cx.stroke()
-
-        cx.strokeStyle = colors.darkblue
-        cx.beginPath()
-        for (let i = 0; i < 8; i++) {
-            for (let j = 0; j < 8; j++) {
-                if ((i + j) % 2 === 1) {
-                    continue
-                }
-
-                cx.roundRect(x + i * w + 4, y + j * w + 4, w - 8, w - 8, 16)
-            }
-        }
-        cx.stroke()
-
-
     }
 }
 
 
 function render_cursor(x: number, y: number) {
-    cx.lineWidth = 20
-    cx.strokeStyle = colors.black
-    cx.beginPath()
-    cx.moveTo(x + 40, y + 3)
-    cx.lineTo(x + 0, y + 0)
-    cx.lineTo(x + 3, y + 40)
-    cx.stroke()
+    batch.strokeLine(x + 40, y + 3, x, y, 16, colors.black)
+    batch.strokeLine(x, y, x + 3, y + 40, 16, colors.black)
 }
 
 
+export function hitbox_rect(box: Rect) {
+    let x = box.xy.x
+    let y = box.xy.y
+    let w = box.wh.x
+    let h = box.wh.y
+
+    batch.strokeRect(x + w / 2, y + h / 2, w, h, 7, colors.red)
+}
 
 let set_next_scene: SceneName | undefined = undefined
 export function next_scene() {

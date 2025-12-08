@@ -60,14 +60,12 @@ export function TouchMouse(el: HTMLElement, hooks: TouchMouse) {
     hooks.on_move(p)
   }
   
-  let cx = (el as HTMLCanvasElement).getContext('2d')!
   let bounds: DOMRect
   on_resize()
 
 
   function on_resize() {
     bounds = el.getBoundingClientRect()
-    cx.imageSmoothingEnabled = false
   }
 
   function on_scroll() {
