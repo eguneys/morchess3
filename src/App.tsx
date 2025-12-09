@@ -25,7 +25,8 @@ const TheGameBoard = () => {
 
     return (<>
     
-    <div ref={$el} class='game-wrap'></div>
+    <div ref={$el} class='game-wrap'
+    ></div>
     </>)
 }
 
@@ -36,7 +37,9 @@ const MainContent = () => {
 
             {/* Left Column: Board */}
             <div class="lg:col-span-7 xl:col-span-8 flex justify-center">
-                <div class="relative w-full max-w-[600px] aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
+                <div
+                id="the-game-board"
+                 class="relative w-full max-w-[600px] aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
                     <TheGameBoard/>
                 </div>
             </div>
