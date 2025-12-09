@@ -7,7 +7,7 @@ export function init_canvas() {
 
     let canvas = document.createElement('canvas')
 
-    canvas.width = 1920
+    canvas.width = 1080
     canvas.height = 1080
 
     cx = canvas.getContext('2d')!

@@ -72,19 +72,13 @@ function _after_render() {
     current_scene._after_render?.()
 }
 
-async function main(el: HTMLElement) {
+export async function main(el: HTMLElement) {
 
     let canvas = init_canvas()
-    let $ = document.createElement('div')
     canvas.classList.add('interactive')
-    $.classList.add('content')
-    $.appendChild(canvas)
-    el.appendChild($)
+    el.appendChild(canvas)
 
     _init()
 
     Loop(_update, _render, _after_render)
 }
-
-
-main(document.getElementById('app')!)

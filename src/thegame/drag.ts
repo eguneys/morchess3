@@ -14,7 +14,7 @@ export type DragHandler = {
 
 export function DragHandler(el: HTMLCanvasElement) {
 
-    let is_hovering: XY = [0, 0]
+    let is_hovering: XY = [500, 500]
 
     let is_down: XY | undefined
 

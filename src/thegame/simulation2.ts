@@ -20,7 +20,7 @@ type File = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7
 type Rank  = File
 
 const grid_box = {
-    xy: vec2(300, 60),
+    xy: vec2(60, 60),
     wh: vec2(8 * 120, 8 * 120)
 }
 
@@ -154,8 +154,8 @@ export function _init() {
         xy: vec2(0, 0),
         wh: { x: 40, y: 40 },
         follow: {
-            x: new AnimChannel().swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
-            y: new AnimChannel().swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
+            x: new AnimChannel(500).swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
+            y: new AnimChannel(500).swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
         }
     }
 }
@@ -400,7 +400,7 @@ export function _render() {
 
     batch.beginFrame()
 
-    batch.fillRect(1920/2, 1080/2, 1920, 1080, colors.darkblue)
+    batch.fillRect(1080/2, 1080/2, 1080, 1080, colors.darkblue)
 
     render_grid()
 
@@ -560,7 +560,7 @@ function render_grid() {
 
     let x, y
 
-    x = 300
+    x = 60
     y = 60
 
     let w = 120

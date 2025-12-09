@@ -1,0 +1,162 @@
+import { onMount } from 'solid-js'
+import { main as GameMain } from './thegame/main'
+
+
+export default function App() {
+    return (<>
+        <div class="min-h-screen flex flex-col">
+            <Navbar/>
+            {/* Main Content */}
+            <main class="flex-grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12">
+                <MainContent />
+            </main>
+        </div>
+    </>)
+}
+
+
+const TheGameBoard = () => {
+
+    let $el!: HTMLDivElement
+
+    onMount(() => {
+        GameMain($el)
+    })
+
+    return (<>
+    
+    <div ref={$el} class='game-wrap'></div>
+    </>)
+}
+
+
+const MainContent = () => {
+    return (<>
+        <div class="grid lg:grid-cols-12 gap-8 items-start">
+
+            {/* Left Column: Board */}
+            <div class="lg:col-span-7 xl:col-span-8 flex justify-center">
+                <div class="relative w-full max-w-[600px] aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
+                    <TheGameBoard/>
+                </div>
+            </div>
+
+            {/* Right Column: Info & Controls */}
+            <div class="lg:col-span-5 xl:col-span-4 space-y-6">
+
+                {/* Puzzle Info Card */}
+                <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="px-2 py-1 bg-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400 rounded">
+                            {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
+                        </span>
+                        <span class={`px-2 py-1 text-xs font-bold rounded ${'bg-green-500/20 text-green-400'}`}>
+                            {'Easy'}
+                        </span>
+                    </div>
+
+                    <h1 class="text-2xl font-bold text-white mb-2">{'puzzle.title'}</h1>
+                    <p class="text-slate-400 mb-6 leading-relaxed">
+                        {'puzzle.description'}
+                    </p>
+
+                    <div class="flex items-center gap-3 p-4 bg-slate-950/50 rounded-lg border border-slate-800 mb-6">
+                        <div class={`w-3 h-3 rounded-full ${'bg-slate-600 border border-slate-400'}`}></div>
+                        <span class="font-semibold text-slate-200">
+                            {"White to Move"}
+                        </span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div class="grid grid-cols-2 gap-3">
+                        <button
+                            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition-colors border border-slate-700"
+                        >
+                            Reset Board
+                        </button>
+                        <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition-colors border border-slate-700 opacity-50 cursor-not-allowed">
+                            Hint
+                        </button>
+                    </div>
+                </div>
+
+                <StatsExtra />
+                <div class="text-xs text-center text-slate-600 mt-8">
+                    © 2026 Mor Chess 3. All rights reserved. <br /> Designed with 💜.
+                </div>
+            </div>
+        </div>
+    </>)
+}
+
+const Navbar = () => {
+
+    return (<>
+        <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+            <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center text-white font-bold font-serif">
+                        <img class="w-9 h-9 rounded" alt="logo" src="/logo_big.png"></img>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight text-white">Mor Chess 3</span>
+                </div>
+                <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
+                    <button class="text-white hover:text-indigo-400 transition-colors">Daily Puzzle</button>
+                    {/*
+                        <button class="hover:text-indigo-400 transition-colors">Archive</button>
+                        <button class="hover:text-indigo-400 transition-colors">Stats</button>
+                        */}
+                    <button class="hover:text-indigo-400 transition-colors">About</button>
+                </div>
+                <button title="TODO" class="md:hidden text-slate-300">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+                </button>
+            </div>
+        </nav>
+    </>)
+}
+
+const StatsExtra = () => {
+
+    return (<>
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Your Streak</h3>
+            <div class="flex items-end gap-2">
+                <span class="text-4xl font-bold text-white">12</span>
+                <span class="text-sm text-slate-500 mb-1">days</span>
+            </div>
+            <div class="w-full bg-slate-800 h-2 rounded-full mt-4 overflow-hidden">
+                <div class="bg-indigo-500 h-full w-3/4 rounded-full"></div>
+            </div>
+        </div>
+    </>)
+}
+
+
+export const __PuzzleFailed = () => {
+    return (<>
+        <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+            <div class="bg-red-500/90 text-white px-6 py-2 rounded-full shadow-lg animate-bounce font-bold">
+                Incorrect Move
+            </div>
+        </div>
+    </>)
+}
+
+
+export const __PuzzleSolved = () => {
+    return (<>
+        <div class="absolute inset-0 bg-emerald-500/20 backdrop-blur-sm flex items-center justify-center z-20 animate-in fade-in zoom-in duration-300">
+            <div class="bg-slate-900 border border-emerald-500/50 p-6 rounded-xl shadow-2xl text-center">
+                <h2 class="text-3xl font-bold text-emerald-400 mb-2">Solved!</h2>
+                <p class="text-slate-300 mb-4">You found the winning line.</p>
+                <button
+                    class="bg-emerald-500 hover:bg-emerald-600 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                >
+                    Next Puzzle
+                </button>
+            </div>
+        </div>
+
+    </>)
+}
