@@ -8,7 +8,9 @@ import type { Rect } from "./math/rect"
 import type { Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
 import { board_aligns_data, fen_to_board, find_align_direction, type AlignsData, type Board, type Direction, type Pieces } from "./aligns"
-import { AnimationCheckerboard, Animations, AnimationsRandom, AnimationToEmpty, Patterns, type AnimationStep as GridAnimationStep } from './grid_patterns'
+import { AnimationCheckerboard, Animations, AnimationsRandom, Patterns, type AnimationStep as GridAnimationStep } from './grid_patterns'
+
+let DEBUG_END = false
 
 let COLLISIONS = false
 //COLLISIONS = true
@@ -85,8 +87,11 @@ function load_position(target: Board) {
         while (squares.includes(sq2)) {
             sq2 = random_square()
         }
-        if (squares.length >= 1) {
-            sq2 = target.get(pieces)!
+
+        if (DEBUG_END) {
+            if (squares.length >= 1) {
+                sq2 = target.get(pieces)!
+            }
         }
 
         squares.push(sq2)
