@@ -1,5 +1,5 @@
 import './style.css'
-import { Loop } from "./loop_input"
+import { Loop } from "./loop"
 import * as simulate from './simulation2'
 import { drag, init_canvas } from './webgl/canvas'
 

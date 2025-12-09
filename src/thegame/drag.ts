@@ -1,4 +1,4 @@
-import { TouchMouse } from "./loop_input"
+import { TouchMouse } from "./input"
 
 type XY = [number, number]
 
