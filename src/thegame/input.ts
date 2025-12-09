@@ -46,7 +46,22 @@ export function TouchMouse(el: HTMLElement, hooks: TouchMouseHooks) {
   el.addEventListener('pointermove', on_move)
   document.addEventListener('pointerup', on_up)
 
-  new ResizeObserver(() => update_bounds()).observe(el)
+  let resize_observer = new ResizeObserver(() => update_bounds())
+  resize_observer.observe(el)
   document.addEventListener('scroll', update_bounds, { passive: true, capture: true })
   window.addEventListener('resize', update_bounds, { passive: true })
+
+
+  return () => {
+    // --- Listeners ---
+    el.removeEventListener('pointerdown', on_down)
+    el.removeEventListener('pointermove', on_move)
+    document.removeEventListener('pointerup', on_up)
+
+    resize_observer.disconnect()
+    document.removeEventListener('scroll', update_bounds)
+    window.removeEventListener('resize', update_bounds)
+
+
+  }
 }

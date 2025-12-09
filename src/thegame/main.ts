@@ -8,7 +8,7 @@ type Scene = {
     _update(delta: number): void
     _render(): void
     _after_render?: () => void
-    _destroy?: () => void
+    _destroy: () => void
     next_scene(): SceneName | undefined
 }
 
@@ -16,6 +16,7 @@ const default_scene = {
     _init() {},
     _update(_delta: number) {},
     _render() {},
+    _destroy() {},
     next_scene() { return undefined }
 }
 
@@ -71,7 +72,17 @@ function _after_render() {
     current_scene._after_render?.()
 }
 
-export async function main(el: HTMLElement) {
+function _destroy() {
+    current_scene._destroy()
+    drag.destroy()
+}
+
+export type GameAPI = {
+
+    destroy: () => void
+}
+
+export async function main(el: HTMLElement): Promise<GameAPI> {
 
     let canvas = init_canvas()
     canvas.classList.add('interactive')
@@ -79,5 +90,13 @@ export async function main(el: HTMLElement) {
 
     _init()
 
-    Loop(_update, _render, _after_render)
+    let kill_loop = Loop(_update, _render, _after_render)
+
+
+    return {
+        destroy: () => {
+            kill_loop()
+            _destroy()
+        }
+    }
 }

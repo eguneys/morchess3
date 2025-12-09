@@ -687,3 +687,7 @@ function build_board_from_pieces() {
     }
     return res
 }
+
+export function _destroy() {
+
+}

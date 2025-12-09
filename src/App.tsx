@@ -1,5 +1,5 @@
-import { onMount } from 'solid-js'
-import { main as GameMain } from './thegame/main'
+import { onCleanup, onMount } from 'solid-js'
+import { type GameAPI, main as GameMain } from './thegame/main'
 
 
 export default function App() {
@@ -7,7 +7,7 @@ export default function App() {
         <div class="min-h-screen flex flex-col">
             <Navbar/>
             {/* Main Content */}
-            <main class="flex-grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12">
+            <main class="grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12">
                 <MainContent />
             </main>
         </div>
@@ -19,8 +19,16 @@ const TheGameBoard = () => {
 
     let $el!: HTMLDivElement
 
+    let game_api: GameAPI
+
     onMount(() => {
-        GameMain($el)
+        GameMain($el).then((api: GameAPI) => {
+            game_api = api
+        })
+    })
+
+    onCleanup(() => {
+        game_api.destroy()
     })
 
     return (<>
@@ -85,7 +93,14 @@ const MainContent = () => {
 
                 <StatsExtra />
                 <div class="text-xs text-center text-slate-600 mt-8">
-                    © 2026 Mor Chess 3. All rights reserved. <br /> Designed with 💜.
+                    © 2026 Mor Chess 3. All rights reserved. 
+                    <br/>
+                    <div class="flex justify-center gap-x-2">
+                        <a class="link">Privacy Policy</a>
+                        <a class="link">Terms of Service</a>
+                    </div>
+                    <br /> 
+                    Designed with 💜.
                 </div>
             </div>
         </div>
@@ -98,7 +113,7 @@ const Navbar = () => {
         <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
             <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center text-white font-bold font-serif">
+                    <div class="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center text-white font-bold font-serif">
                         <img class="w-9 h-9 rounded" alt="logo" src="/logo_big.png"></img>
                     </div>
                     <span class="text-xl font-bold tracking-tight text-white">Mor Chess 3</span>
