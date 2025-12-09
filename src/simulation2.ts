@@ -8,6 +8,7 @@ import type { Rect } from "./math/rect"
 import type { Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
 import { board_aligns_data, fen_to_board, find_align_direction, type AlignsData, type Board, type Direction, type Pieces } from "./aligns"
+import { AnimationsRandom, AnimationToEmpty, Patterns, type AnimationStep as GridAnimationStep } from './grid_patterns'
 
 let COLLISIONS = false
 //COLLISIONS = true
@@ -68,6 +69,9 @@ type Aligns = {
     stick: Direction
 }
 
+
+
+
 function load_position(target: Board) {
     const random_square = () => Math.floor(Math.random() * 64)
 
@@ -80,6 +84,9 @@ function load_position(target: Board) {
         let sq2 = random_square()
         while (squares.includes(sq2)) {
             sq2 = random_square()
+        }
+        if (squares.length >= 1) {
+            sq2 = target.get(pieces)!
         }
 
         squares.push(sq2)
@@ -105,13 +112,37 @@ function load_position(target: Board) {
     model_mis_aligns = []
 }
 
+let endgame_timer: number
+let is_game_over: boolean
+
+let endgame_anim_channels = {
+    x: new AnimChannel(),
+    y: new AnimChannel(),
+    r: new AnimChannel()
+}
+
+
+type GridAnimation = {
+    frames: GridAnimationStep[]
+    time: number
+}
+
+let grid_animation: GridAnimation
+
 export function _init() {
 
+    grid_animation = {
+        frames: [],
+        time: 0,
+    }
     load_position(fen_to_board('4k3/4b3/5pp1/3KP2p/1p5P/4B1P1/1P6/8 w - - 1 44'))
     load_position(fen_to_board('4rk2/3q1p2/2pp1Ppp/p1p5/2P2bN1/1P2Q3/P4PPP/4RK2 w - - 2 28'))
     //load_position(fen_to_board('r6K/8/8/8/8/8/8/8 w - - 0 1'))
     //load_position(fen_to_board('8/8/8/3p4/3K4/4P3/8/8 w - - 0 1'))
     //load_position(fen_to_board('8/8/8/8/3K4/5N2/8/8 w - - 0 1'))
+
+    endgame_timer = 0
+    is_game_over = false
 
     time = 0
     cursor = {
@@ -147,7 +178,8 @@ export function _update(delta: number) {
 
     cursor.sq = pos_to_square(cursor.xy)
 
-    if (drag.is_just_down) {
+    let can_drag = !is_game_over && endgame_timer === 0
+    if (can_drag && drag.is_just_down) {
         const cursor_sq = cursor.sq
         if (cursor_sq !== undefined) {
 
@@ -187,9 +219,72 @@ export function _update(delta: number) {
         if (cursor.drag) {
             cursor.drag = undefined
         }
+
+        if (can_drag) {
+
+            let board = build_board_from_pieces()
+            let current_aligns = board_aligns_data(board)
+            let is_everything_matched =
+                target_aligns_data.every(t => current_aligns.some(c => t.x === c.x && t.y === c.y)) &&
+                current_aligns.every(t => target_aligns_data.some(c => t.x === c.x && t.y === c.y))
+
+            if (is_everything_matched) {
+                endgame_timer = 2000
+            }
+        }
     }
 
+    if (endgame_timer > 0) {
+        endgame_timer -= delta
 
+        if (endgame_timer <= 0) {
+            endgame_timer = 0
+            is_game_over = true
+
+            push_animation_frames()
+        }
+    }
+
+    if (endgame_timer > 1500) {
+        endgame_anim_channels.x.springTo(10, { stiffness: 1000, damping: 8 })
+        endgame_anim_channels.y.springTo(-35, { stiffness: 1000, damping: 8 })
+        endgame_anim_channels.r.springTo(Math.PI * 0.5, { stiffness: 1000, damping: 2 })
+    } else if (endgame_timer > 800) {
+        endgame_anim_channels.y.springTo(-1000, { stiffness: 50 })
+    }
+
+    endgame_anim_channels.x.update(delta / 1000)
+    endgame_anim_channels.y.update(delta / 1000)
+    endgame_anim_channels.r.update(delta / 1000)
+
+    update_grid_animation(delta)
+}
+
+function push_animation_frames() {
+    grid_animation.frames = [
+        ...AnimationsRandom(),
+        ...AnimationsRandom(),
+        ...AnimationsRandom(),
+        ...AnimationToEmpty(Patterns.full())
+    ]
+}
+
+function update_grid_animation(delta: number) {
+
+
+
+    let frame = grid_animation.frames.shift()
+
+    if (!frame) {
+        return
+    }
+
+    grid_animation.time += delta
+    if (grid_animation.time > frame.delay) {
+        grid_animation.time -= frame.delay
+    } else {
+        grid_animation.frames.unshift(frame)
+    }
 }
 
 function update_aligns(_delta: number) {
@@ -330,12 +425,16 @@ function render_piece(piece: PieceOnBoard) {
 
     render_role(x, y, piece.pieces)
 
-    for (let align of model_aligns) {
+    for (let i =0; i < model_aligns.length; i++) {
+        let align = model_aligns[i]
         let x = align.piece.xy.x.value
         let y = align.piece.xy.y.value
         x += align.xy.x.value
         y += align.xy.y.value
-        render_aligns(x, y, align.data.y, align.stick)
+        x += endgame_anim_channels.x.value * (i % 2 === 0 ? - 20: 20)
+        y += endgame_anim_channels.y.value
+        let r = endgame_anim_channels.r.value * (i % 2 === 0 ? - 1 : 1)
+        render_aligns(x, y, align.data.y, align.stick, r)
     }
 
     for (let align of model_mis_aligns) {
@@ -360,12 +459,12 @@ function render_mis_aligns(x: number, y: number, pieces: Pieces, stick: Directio
 
 
 
-function render_aligns(x: number, y: number, pieces: Pieces, stick: Direction) {
+function render_aligns(x: number, y: number, pieces: Pieces, stick: Direction, theta: number) {
     let thick = 1
     let color =  stick === 0 ? colors.red : colors.green
 
-    batch.fillRoundRect(x, y, 46, 46, 6, colors.darkblue)
-    batch.strokeRoundRect(x, y, 46, 46, 6, thick, color)
+    batch.fillRoundRect(x, y, 46, 46, 6, colors.darkblue, theta)
+    batch.strokeRoundRect(x, y, 46, 46, 6, thick, color, undefined, theta)
 
     render_mini_role(x, y, pieces)
 }
@@ -461,6 +560,17 @@ function render_grid() {
     let w = 120
     for (let i = 0; i < 8; i++) {
         for (let j = 0; j < 8; j++) {
+
+            let is_cell_on = grid_animation.frames[0]?.grid[i][j]
+
+            if (is_cell_on) {
+                if ((i + j) % 2 === 0) {
+                    batch.fillRoundRect(x + i * w + w / 2, y + j * w + w / 2, w + 16, w + 16, 16, colors.pink)
+                } else {
+                    batch.fillRoundRect(x + i * w + w / 2, y + j * w + w / 2, w + 32, w + 32, 16, colors.blue)
+                }
+            }
+
             if ((i + j) % 2 === 0) {
                 batch.strokeRoundRect(x + i * w + w/ 2, y + j * w + w/ 2, w + 16, w + 16, 16, 3, colors.pink)
             } else {
