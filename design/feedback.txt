@@ -1,9 +1,8 @@
 Thank you for trying this early prototype!
-You will see one single puzzle, based on an actual chess position.
 Please share your thoughts below:
 
 Overall, how enjoyable was the experience?
-Were you able to solve the puzzle?
+Were you able to solve the daily puzzle?
 If yes: How challenging was it?
 If no: What was confusing or unclear?
 Please suggest:

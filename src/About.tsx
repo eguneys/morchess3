@@ -20,7 +20,8 @@ export default () => {
                 The Project
             </h2>
             <p class="text-slate-400 leading-relaxed mb-6">
-                Mor Chess3 is a minimalist puzzle game where you rearrange shuffled pieces back to their correct squares by analyzing who attacks whom. Sharpens your tactical vision with daily puzzles.
+                Mor Chess 3 is a minimalist puzzle game where you rearrange shuffled pieces back to their correct squares by analyzing who attacks whom. Sharpens your tactical vision with daily puzzles.
+                Let's you compete with your friends on time based challenges on public Leaderboards.
             </p>
             <p class="text-slate-400 leading-relaxed">
                 Built with WebGL with the help of ChatGPT and Google AI Studio.

@@ -31,8 +31,7 @@ export default () => {
                       We do not collect emails, passwords, or personal profiles.
                 </p>
                 <p class="mb-3">
-                    <strong>2. How We Use Your Data:</strong> 
-                      We use this information to: Display leaderboards, Maintain fair play, Improve the game, Ensure the service is functioning correctly.
+                    <strong>2. How We Use Your Data:</strong> We use this information to: Display leaderboards, Maintain fair play, Improve the game, Ensure the service is functioning correctly.
 
                       We do not sell, trade, or share your data with third parties.
                 </p>

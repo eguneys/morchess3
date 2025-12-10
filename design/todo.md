@@ -1,0 +1,10 @@
+- [ ] Sounds
+- [ ] Leaderboards
+- [ ] Daily Puzzles
+- [ ] Progression Set
+- [ ] Tutorial Set
+- [ ] Simpler Tutorial
+- [ ] Confusion Detection
+- [ ] Blog Post
+- [ ] Feedback
+- [ ] Ship it
