@@ -1,6 +1,6 @@
-import { type JSX, lazy, onCleanup, onMount } from 'solid-js'
-import { type GameAPI, main as GameMain } from './thegame/main'
+import { type JSX, lazy  } from 'solid-js'
 import { A, Route, Router } from '@solidjs/router'
+import { TheGameBoard } from './TheGameBoard';
 
 const Legal = lazy(() => import("./Legal"));
 const About = lazy(() => import("./About"));
@@ -27,38 +27,6 @@ function Layout(props: { children?: JSX.Element }) {
                 {props.children}
             </main>
         </div>
-    </>)
-}
-
-const TheGameBoard = () => {
-
-    let $el!: HTMLDivElement
-
-    let cleanup_early = false
-    let game_api: GameAPI
-
-    onMount(() => {
-        GameMain($el).then((api: GameAPI) => {
-            if (cleanup_early) {
-                api.cleanup()
-                return
-            }
-            game_api = api
-        })
-    })
-
-    onCleanup(() => {
-        if (!game_api) {
-            cleanup_early = true
-            return
-        }
-        game_api.cleanup()
-    })
-
-    return (<>
-    
-    <div ref={$el} class='game-wrap'
-    ></div>
     </>)
 }
 

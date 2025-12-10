@@ -2,7 +2,6 @@ import { Loop } from "./loop"
 import * as simulate from './simulation2'
 import { drag, Init_canvas, type InitCanvas } from './webgl/canvas'
 
-
 type Scene = {
     _init(): void
     _update(delta: number): void
