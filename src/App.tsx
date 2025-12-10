@@ -1,33 +1,57 @@
-import { onCleanup, onMount } from 'solid-js'
+import { type JSX, lazy, onCleanup, onMount } from 'solid-js'
 import { type GameAPI, main as GameMain } from './thegame/main'
+import { A, Route, Router } from '@solidjs/router'
 
+const Legal = lazy(() => import("./Legal"));
+const About = lazy(() => import("./About"));
+const Contact = lazy(() => import("./Contact"));
 
 export default function App() {
     return (<>
+    
+    <Router root={Layout}>
+        <Route path="/" component={Home}/>
+        <Route path="/about" component={About}/>
+        <Route path="/legal" component={Legal}/>
+        <Route path="/contact" component={Contact}/>
+    </Router>
+    </>)
+}
+
+
+function Layout(props: { children?: JSX.Element }) {
+    return (<>
         <div class="min-h-screen flex flex-col">
             <Navbar/>
-            {/* Main Content */}
             <main class="grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12">
-                <MainContent />
+                {props.children}
             </main>
         </div>
     </>)
 }
 
-
 const TheGameBoard = () => {
 
     let $el!: HTMLDivElement
 
+    let destroy_early = false
     let game_api: GameAPI
 
     onMount(() => {
         GameMain($el).then((api: GameAPI) => {
+            if (destroy_early) {
+                api.destroy()
+                return
+            }
             game_api = api
         })
     })
 
     onCleanup(() => {
+        if (!game_api) {
+            destroy_early = true
+            return
+        }
         game_api.destroy()
     })
 
@@ -39,7 +63,7 @@ const TheGameBoard = () => {
 }
 
 
-const MainContent = () => {
+const Home = () => {
     return (<>
         <div class="grid lg:grid-cols-12 gap-8 items-start">
 
@@ -96,8 +120,9 @@ const MainContent = () => {
                     © 2026 Mor Chess 3. All rights reserved. 
                     <br/>
                     <div class="flex justify-center gap-x-2">
-                        <a class="link">Privacy Policy</a>
-                        <a class="link">Terms of Service</a>
+                        <A href="legal#privacy" class="link">Privacy Policy</A>
+                        <A href="legal#terms" class="link">Terms of Service</A>
+                        <A href="contact" class="link">Contact Us</A>
                     </div>
                     <br /> 
                     Designed with 💜.
@@ -109,6 +134,8 @@ const MainContent = () => {
 
 const Navbar = () => {
 
+    const dev = () => import.meta.env.DEV ? '.dev' : ''
+
     return (<>
         <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
             <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -116,15 +143,11 @@ const Navbar = () => {
                     <div class="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-600 rounded flex items-center justify-center text-white font-bold font-serif">
                         <img class="w-9 h-9 rounded" alt="logo" src="/logo_big.png"></img>
                     </div>
-                    <span class="text-xl font-bold tracking-tight text-white">Mor Chess 3</span>
+                    <A href="/" class="text-xl font-bold tracking-tight text-white">Mor Chess 3 {dev()}</A>
                 </div>
                 <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
-                    <button class="text-white hover:text-indigo-400 transition-colors">Daily Puzzle</button>
-                    {/*
-                        <button class="hover:text-indigo-400 transition-colors">Archive</button>
-                        <button class="hover:text-indigo-400 transition-colors">Stats</button>
-                        */}
-                    <button class="hover:text-indigo-400 transition-colors">About</button>
+                    <A href="/" class="text-white hover:text-indigo-400 transition-colors">Daily Puzzle</A>
+                    <A href="/about" class="hover:text-indigo-400 transition-colors">About</A>
                 </div>
                 <button title="TODO" class="md:hidden text-slate-300">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>

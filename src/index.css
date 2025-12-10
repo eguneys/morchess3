@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@font-face {
+ font-family: 'Inter';
+ src: url(/fonts/Inter-VariableFont_opsz,wght.ttf) format('ttf');
+}
+
 body {
     font-family: 'Inter', sans-serif;
     background-color: #020617;
@@ -25,10 +30,22 @@ body {
     background: #475569;
 }
 
+:target, #privacy, #terms {
+    scroll-margin-top: 100px;
+}
+
 .link {
    @apply cursor-pointer underline text-blue-600 hover:text-blue-800 visited:text-purple-600
 }
 
+span.spoiler {
+    cursor: pointer;
+    transition: .5s;
+}
+
+span.spoiler.hide {
+    @apply text-gray-800 bg-gray-300 px-1;
+}
 
 #the-game-board {
     width: min(100%, calc(100vh - 80px))
