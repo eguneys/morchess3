@@ -2,10 +2,15 @@ import { DragHandler } from "../drag"
 import { BatchRenderer } from "./BatchRenderer"
 import { Renderer } from "./renderer"
 
+export type InitCanvas = {
+    canvas: HTMLCanvasElement,
+    cleanup: () => void
+}
+
 export let drag: DragHandler
 export let batch: BatchRenderer
 
-export function init_canvas() {
+export function Init_canvas(): InitCanvas {
 
     let canvas = document.createElement('canvas')
 
@@ -19,5 +24,11 @@ export function init_canvas() {
 
     drag = DragHandler(canvas)
 
-    return canvas
+    return {
+        canvas,
+        cleanup() {
+            renderer.cleanup()
+            drag.cleanup()
+        }
+    }
 }

@@ -10,7 +10,7 @@ export type DragHandler = {
     is_double_click?: XY
     update(delta: number): void
     has_moved_after_last_down: boolean
-    destroy(): void
+    cleanup(): void
 }
 
 export function DragHandler(el: HTMLCanvasElement) {
@@ -66,7 +66,7 @@ export function DragHandler(el: HTMLCanvasElement) {
     }
 
 
-    let destroy_mouse = TouchMouse(el, hooks)
+    let cleanup_mouse = TouchMouse(el, hooks)
 
     return {
         get is_hovering() {
@@ -102,8 +102,8 @@ export function DragHandler(el: HTMLCanvasElement) {
             is_just_down = undefined
             is_up = undefined
         },
-        destroy() {
-            destroy_mouse()
+        cleanup() {
+            cleanup_mouse()
         }
     }
 }

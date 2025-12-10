@@ -34,13 +34,13 @@ const TheGameBoard = () => {
 
     let $el!: HTMLDivElement
 
-    let destroy_early = false
+    let cleanup_early = false
     let game_api: GameAPI
 
     onMount(() => {
         GameMain($el).then((api: GameAPI) => {
-            if (destroy_early) {
-                api.destroy()
+            if (cleanup_early) {
+                api.cleanup()
                 return
             }
             game_api = api
@@ -49,10 +49,10 @@ const TheGameBoard = () => {
 
     onCleanup(() => {
         if (!game_api) {
-            destroy_early = true
+            cleanup_early = true
             return
         }
-        game_api.destroy()
+        game_api.cleanup()
     })
 
     return (<>

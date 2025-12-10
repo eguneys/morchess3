@@ -182,4 +182,51 @@ export class Renderer {
     }
 
 
+    cleanup() {
+        const gl = this.gl;
+
+        // 1. Unbind VAO
+        gl.bindVertexArray(null);
+
+        // 2. Delete VAO
+        if (this.vao) {
+            gl.deleteVertexArray(this.vao);
+        }
+
+        // 3. Unbind VBOs
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
+
+        // 4. Delete VBOs
+        if (this.quadVBO) {
+            gl.deleteBuffer(this.quadVBO);
+        }
+
+        if (this.instanceVBO) {
+            gl.deleteBuffer(this.instanceVBO);
+        }
+
+        // 5. Delete shader program
+        if (this.program) {
+            gl.useProgram(null);
+            gl.deleteProgram(this.program);
+        }
+
+        // 6. Delete any textures if you add them later
+        /*
+        if (this.texture) {
+            gl.deleteTexture(this.texture);
+            this.texture = null;
+        }
+        */
+
+        // 7. Optional: Clear GL state
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        // Renderer object is now safe to be GC’d
+    }
+
+
 }

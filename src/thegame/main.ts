@@ -1,6 +1,6 @@
 import { Loop } from "./loop"
 import * as simulate from './simulation2'
-import { drag, init_canvas } from './webgl/canvas'
+import { drag, Init_canvas, type InitCanvas } from './webgl/canvas'
 
 
 type Scene = {
@@ -8,7 +8,7 @@ type Scene = {
     _update(delta: number): void
     _render(): void
     _after_render?: () => void
-    _destroy: () => void
+    _cleanup: () => void
     next_scene(): SceneName | undefined
 }
 
@@ -16,7 +16,7 @@ const default_scene = {
     _init() {},
     _update(_delta: number) {},
     _render() {},
-    _destroy() {},
+    _cleanup() {},
     next_scene() { return undefined }
 }
 
@@ -24,7 +24,7 @@ let current_scene: Scene
 let next_scene: Scene
 
 function switch_to_scene(scene: Scene) {
-    next_scene._destroy?.()
+    next_scene._cleanup?.()
     next_scene = scene
 }
 
@@ -61,7 +61,6 @@ function _update(delta: number) {
     drag.update(delta)
 }
 
-
 function _render() {
     current_scene._render()
 }
@@ -72,31 +71,34 @@ function _after_render() {
     current_scene._after_render?.()
 }
 
-function _destroy() {
-    current_scene._destroy()
-    drag.destroy()
+function _cleanup() {
+    current_scene._cleanup()
+    init_canvas.cleanup()
 }
 
 export type GameAPI = {
 
-    destroy: () => void
+    cleanup: () => void
 }
+
+let init_canvas: InitCanvas
 
 export async function main(el: HTMLElement): Promise<GameAPI> {
 
-    let canvas = init_canvas()
+    init_canvas  = Init_canvas()
+    let canvas = init_canvas.canvas
     canvas.classList.add('interactive')
     el.appendChild(canvas)
 
     _init()
 
-    let kill_loop = Loop(_update, _render, _after_render)
+    let cleanup_loop = Loop(_update, _render, _after_render)
 
 
     return {
-        destroy: () => {
-            kill_loop()
-            _destroy()
+        cleanup: () => {
+            cleanup_loop()
+            _cleanup()
         }
     }
 }
