@@ -7,10 +7,8 @@ import { colors, vibrant } from './colors_in_gl'
 import type { Rect } from "./math/rect"
 import type { Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
-import { board_aligns_data, fen_to_board, find_align_direction, type AlignsData, type Board, type Direction, type FEN, type Pieces } from "./aligns"
+import { board_aligns_data, board_to_fen, fen_to_board, find_align_direction, type AlignsData, type Board, type Direction, type FEN, type Pieces } from "./aligns"
 import { AnimationCheckerboard, Animations, AnimationsRandom, Patterns, type AnimationStep as GridAnimationStep } from './grid_patterns'
-
-let DEBUG_END = false
 
 let COLLISIONS = false
 //COLLISIONS = true
@@ -71,38 +69,30 @@ type Aligns = {
     stick: Direction
 }
 
-function load_position(target: Board, shuffle = true) {
-    steps = 0
-    const random_square = () => Math.floor(Math.random() * 64)
+let c_board_fen: FEN
 
+function load_position(c_fen: FEN, t_fen: FEN, nb_steps: number) {
+
+    steps = nb_steps * (grid_box.wh.x / 8)
+
+    let current = fen_to_board(c_fen)
+    let target = fen_to_board(t_fen)
+
+    if (c_board_fen === board_to_fen(current).split(' ')[0]) {
+        return
+    }
+
+    c_board_fen = c_fen.split(' ')[0]
     pieces_on_board = []
 
-    let squares: Square[] = []
-
-    for (let pieces of target.keys()) {
-
-        let sq2 = random_square()
-        while (squares.includes(sq2)) {
-            sq2 = random_square()
-        }
-        if (!shuffle) {
-            sq2 = target.get(pieces)!
-        }
-
-        if (DEBUG_END) {
-            if (squares.length >= 1) {
-                sq2 = target.get(pieces)!
-            }
-        }
-
-        squares.push(sq2)
+    for (let pieces of current.keys()) {
         pieces_on_board.push({
             pieces,
             xy: {
                 x: new AnimChannel(500),
                 y: new AnimChannel(500)
             },
-            sq_base: sq2
+            sq_base: current.get(pieces)!
         })
     }
     target_aligns_data = board_aligns_data(target)
@@ -152,7 +142,7 @@ export function _init() {
         time: 0,
     }
 
-    load_position(fen_to_board(''))
+    load_position('', '', 0)
     //load_position(fen_to_board('4k3/4b3/5pp1/3KP2p/1p5P/4B1P1/1P6/8 w - - 1 44'))
     //load_position(fen_to_board('4rk2/3q1p2/2pp1Ppp/p1p5/2P2bN1/1P2Q3/P4PPP/4RK2 w - - 2 28'))
     //load_position(fen_to_board('r6K/8/8/8/8/8/8/8 w - - 0 1'))
@@ -194,7 +184,7 @@ export function _update(delta: number) {
             let dd = distance(vec2(cursor.drag.piece.xy.x.value, cursor.drag.piece.xy.y.value), sub(cursor.xy, cursor.drag.decay))
 
             steps += dd
-            set_update_steps(Math.floor(steps / (grid_box.wh.x/ 8)))
+            set_update_steps(Math.floor(steps / (grid_box.wh.x / 8)))
 
             cursor.drag.piece.xy.x.followTo(cursor.xy.x - cursor.drag.decay.x)
             cursor.drag.piece.xy.y.followTo(cursor.xy.y - cursor.drag.decay.y)
@@ -244,10 +234,13 @@ export function _update(delta: number) {
     if (drag.is_up) {
         if (cursor.drag) {
             cursor.drag = undefined
+
+            let fen = board_to_fen(build_board_from_pieces())
+            c_board_fen = fen.split(' ')[0]
+            set_update_fen(fen)
         }
 
         if (can_drag) {
-
             let board = build_board_from_pieces()
             let current_aligns = board_aligns_data(board)
             let is_everything_matched =
@@ -256,6 +249,8 @@ export function _update(delta: number) {
 
             if (is_everything_matched) {
                 endgame_timer = 2000
+
+                set_update_solved()
             }
         }
     }
@@ -701,6 +696,11 @@ function pos_to_square(xy: Vec2): Square | undefined {
 
 function build_board_from_pieces() {
     let res: Board = new Map<Pieces, Square>()
+
+    if (!pieces_on_board) {
+        return res
+    }
+
     for (let pieces of pieces_on_board) {
         if (pieces.sq !== undefined) {
             res.set(pieces.pieces, pieces.sq)
@@ -714,30 +714,29 @@ export function _cleanup() {
 }
 
 export type SimulApi =  {
-    reveal_solution: () => void
-    load_position: (fen: FEN) => void
-    shuffle_board: () => void
+    load_position: (fen: FEN, target: FEN, nb_steps: number) => void
     set_update_steps: (fn: (_: number) => void) => void
+    set_update_fen: (fn: (_: FEN) => void) => void
+    set_update_solved: (fn: () => void) => void
 }
 
 let set_update_steps = (_: number) => {}
+let set_update_fen = (_: FEN) => {}
+let set_update_solved = () => {}
 
 export function _api() {
-    
-    let loaded_fen: FEN = ''
     return {
+        set_update_fen(update_fen: (_: FEN) => void) {
+            set_update_fen = update_fen
+        },
         set_update_steps(update_steps: (_: number) => void) {
             set_update_steps = update_steps
         },
-        reveal_solution() {
-            load_position(fen_to_board(loaded_fen), false)
+        set_update_solved(update_solved: () => void) {
+            set_update_solved = update_solved
         },
-        shuffle_board() {
-            load_position(fen_to_board(loaded_fen))
-        },
-        load_position: (fen: FEN) => {
-            loaded_fen = fen
-            load_position(fen_to_board(fen))
+        load_position: (fen: FEN, target: FEN, nb_steps: number) => {
+            load_position(fen, target, nb_steps)
         }
     }
 }

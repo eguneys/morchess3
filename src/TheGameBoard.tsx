@@ -3,7 +3,7 @@ import { type GameAPI, main as GameMain } from './thegame/main'
 import type { FEN } from './thegame/aligns'
 import type { SimulApi } from './thegame/simulation2'
 
-export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: () => void, set_update_steps: (_: number) => void }) => {
+export const TheGameBoard = (props: { fen?: FEN, target?: FEN, nb_steps?: number, set_update_fen: (_: FEN) => void , set_update_steps: (_: number) => void, set_update_solved: () => void }) => {
 
     let $el!: HTMLDivElement
 
@@ -11,38 +11,21 @@ export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: ()
     let game_api: GameAPI
     let simul_api: SimulApi
 
-    let load_fen_on_init: FEN | undefined
+    let load_fen_on_init: [FEN, FEN, number] | undefined
 
-    const set_update_steps = (steps: number) => {
-        props.set_update_steps(steps)
-    }
-
-    createEffect(() => {
-        props.reveal()
-
-        if (simul_api) {
-            simul_api.reveal_solution()
-        }
-    })
-
-    createEffect(() => {
-        props.shuffle()
-
-        if (simul_api) {
-            simul_api.shuffle_board()
-        }
-    })
 
     createEffect(() => {
         let fen = props.fen
-        if (!fen) {
+        let target = props.target
+        let steps = props.nb_steps ?? 0
+        if (!fen || !target) {
             return
         }
 
         if (simul_api) {
-            simul_api.load_position(fen)
+            simul_api.load_position(fen, target, steps)
         } else {
-            load_fen_on_init = fen
+            load_fen_on_init = [fen, target, steps]
         }
     })
 
@@ -56,10 +39,12 @@ export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: ()
             game_api.request_api().then((api: SimulApi) => {
                 simul_api = api
                 if (load_fen_on_init) {
-                    simul_api.load_position(load_fen_on_init)
+                    simul_api.load_position(...load_fen_on_init)
                     load_fen_on_init = undefined
                 }
-                simul_api.set_update_steps(set_update_steps)
+                simul_api.set_update_steps(props.set_update_steps)
+                simul_api.set_update_fen(props.set_update_fen)
+                simul_api.set_update_solved(props.set_update_solved)
             })
 
         })

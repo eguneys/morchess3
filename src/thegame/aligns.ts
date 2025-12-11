@@ -1,7 +1,9 @@
+import { Board as ChessopsBoard, Chess } from "chessops"
 import { attacks } from "./chess/attacks"
 import { SquareSet } from "./chess/squareSet"
 import type { Piece, Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
+import { makeFen } from "chessops/fen"
 
 export type Role = 'P' | 'p' | 'b' | 'k' | 'n' | 'r' | 'q'
 export type Count = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
@@ -169,4 +171,22 @@ export function fen_to_board(fen: FEN) {
         rank -= 1
     }
     return res
+}
+
+
+export function board_to_fen(board: Board) {
+    let pos = emptyPosition()
+
+    for (let [piece, square] of board.entries()) {
+        pos.board.set(square, parse_pieces(piece)!)
+    }
+
+    return makeFen(pos.toSetup())
+}
+
+
+export function emptyPosition() {
+    let pos = Chess.default()
+    pos.board = ChessopsBoard.empty()
+    return pos
 }

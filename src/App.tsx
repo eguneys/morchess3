@@ -1,9 +1,8 @@
-import { createMemo, createSelector, createSignal, ErrorBoundary, type JSX, lazy, Show, Suspense  } from 'solid-js'
+import { createMemo, createSelector, createSignal, ErrorBoundary, type JSX, lazy, Match, Show, Suspense, Switch  } from 'solid-js'
 import { A, Route, Router, useLocation, useNavigate } from '@solidjs/router'
 import { TheGameBoard } from './TheGameBoard';
 import { type DifficultyTier, type PuzzleStats } from './state/types';
 import { MorStoreProvider, usePuzzles } from './state';
-import { createStore } from 'solid-js/store';
 
 const Legal = lazy(() => import("./Legal"));
 const About = lazy(() => import("./About"));
@@ -41,22 +40,12 @@ function Layout(props: { children?: JSX.Element }) {
 
 const Home = () => {
 
-    const [shuffle, set_shuffle] = createSignal(void 0, { equals: false })
-    const [reveal, set_reveal] = createSignal(void 0, { equals: false })
+    const [puzzles, { set_shuffle, set_reveal, set_daily_steps, set_daily_tier, set_daily_fen, set_solved }] = usePuzzles()
 
-    let [s, set_s] = createStore({ nb_steps: 0 })
-
-    const set_update_steps = (steps: number) => {
-        set_s('nb_steps', steps)
-    }
-
-    const stats = createMemo(() => s!)
-
-    const [selected_tier, set_selected_tier] = createSignal<DifficultyTier>('b')
-
-    const [puzzles] = usePuzzles()
-    const puzzle_set = createMemo(() => puzzles.daily_puzzle_set)
-    const puzzle = createMemo(() => puzzle_set()?.[selected_tier()])
+    const daily_selected_tier = createMemo(() => puzzles.daily_selected_tier)
+    const puzzle_set = createMemo(() => puzzles.saved_daily_puzzle_set)
+    const puzzle = createMemo(() => puzzle_set()?.[puzzles.daily_selected_tier])
+    const stats = createMemo(() => puzzles.stats)
 
     return (<>
         <div class="grid lg:grid-cols-12 gap-8 items-start">
@@ -68,7 +57,7 @@ const Home = () => {
                  class="relative w-full max-w-[600px] aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
                     <ErrorBoundary fallback={""}>
                         <Suspense>
-                            <TheGameBoard fen={puzzle()?.fen} shuffle={shuffle} reveal={reveal} set_update_steps={set_update_steps} />
+                            <TheGameBoard fen={puzzle()?.fen} target={puzzle()?.base_fen} nb_steps={stats()?.nb_steps} set_update_steps={set_daily_steps} set_update_fen={set_daily_fen} set_update_solved={set_solved} />
                         </Suspense>
                     </ErrorBoundary>
                 </div>
@@ -83,8 +72,8 @@ const Home = () => {
             <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
                 {tiers.map((level) => (
                     <button
-                        onClick={() => set_selected_tier(level as any)}
-                        class={`cursor-pointer flex-1 py-2 text-sm font-medium rounded-lg transition-all ${selected_tier() === level
+                        onClick={() => set_daily_tier(level as DifficultyTier)}
+                        class={`cursor-pointer flex-1 py-2 text-sm font-medium rounded-lg transition-all ${daily_selected_tier() === level
                                 ? 'bg-indigo-600 text-white shadow-lg'
                                 : 'text-slate-400 hover:text-white hover:bg-slate-800'
                             }`}
@@ -99,7 +88,7 @@ const Home = () => {
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
                     <ErrorBoundary fallback={FailedPuzzleInfoCard}>
                         <Suspense>
-                            <PuzzleInfoCard stats={stats()} selected_tier={selected_tier()} puzzle_id={puzzle()?.id??0} />
+                            <PuzzleInfoCard stats={stats()} selected_tier={daily_selected_tier()} puzzle_id={puzzle()?.id??0} />
                             <ActionButtons on_shuffle={set_shuffle} on_reveal={set_reveal}/>
                         </Suspense>
                     </ErrorBoundary>
@@ -137,7 +126,7 @@ const ActionButtons = (props: { on_reveal: () => void, on_shuffle: () => void })
             </button>
             <button 
             onClick={() => props.on_reveal()}
-            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition-colors border border-slate-700 opacity-50 cursor-not-allowed">
+            class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium transition-colors border border-slate-700 opacity-50">
                 Reveal Solution
             </button>
         </div>
@@ -162,7 +151,7 @@ const tiers: DifficultyTier[] = ['a', 'b', 'c']
 const difficulty_texts = { a: 'Easy', b: 'Medium', c: 'Hard' }
 const difficulty_colors = { a: 'bg-green-500/20 text-green-400', b: 'bg-yellow-500/20 text-yellow-400', c: 'bg-red-500/20 text-red-400' }
 
-const PuzzleInfoCard = (props: { stats: PuzzleStats, selected_tier: DifficultyTier, puzzle_id: number }) => {
+const PuzzleInfoCard = (props: { stats?: PuzzleStats, selected_tier: DifficultyTier, puzzle_id: number }) => {
 
     const selected_tier = createMemo(() => props.selected_tier)
 
@@ -207,10 +196,33 @@ const PuzzleInfoCard = (props: { stats: PuzzleStats, selected_tier: DifficultyTi
             </p>
 
             <div class="flex items-center gap-3 p-4 bg-slate-950/50 rounded-lg border border-slate-800 mb-6">
+            <Switch fallback={<>
                 <span class="font-semibold text-slate-400">
-                    Distance Traveled: 
+                    Distance Traveled:
                 </span>
-                <span class="font-bold text-xl text-slate-200">{props.stats.nb_steps}</span>
+                <span class="font-bold text-xl text-slate-200">{props.stats?.nb_steps}</span>
+            </>
+            }>
+                <Match when={props.stats?.nb_revealed}>{nb_revealed =>
+                    <>
+                        <span class="font-semibold text-slate-500">
+                            Revealed Solution After:
+                        </span>
+                        <span class="font-bold text-xl text-slate-200">{nb_revealed()}</span>
+                    </>
+                }</Match>
+                <Match when={props.stats?.nb_solved}>{nb_solved =>
+                    <>
+                        <span class="font-semibold text-slate-400">
+                            Solved Solution After:
+                        </span>
+                        <span class="font-bold text-xl text-slate-200">{nb_solved()}</span>
+                    </>
+                }</Match>
+
+
+
+            </Switch>
             </div>
 
         </>)
