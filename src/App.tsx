@@ -174,12 +174,27 @@ const PuzzleInfoCard = (props: { stats: PuzzleStats, selected_tier: DifficultyTi
 
 
     const todays_date = createMemo(() => puzzles.today)
-    const date_locale_string = createMemo(() => todays_date()?.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }))
+    //const date_locale_string = createMemo(() => todays_date()?.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }))
+    const date_utc_string = createMemo(() => {
+        const d = todays_date();
+        if (!d) return "";
+
+        // Format using UTC components
+        const utcFormatted = d.toLocaleDateString(undefined, {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            timeZone: "UTC"
+        });
+
+        return `${utcFormatted} (UTC)`;
+    });
+
 
     return (<>
             <div class="flex items-center justify-between mb-4">
                 <span class="px-2 py-1 bg-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400 rounded">
-                    {date_locale_string()}
+                    {date_utc_string()}
                 </span>
                 <span class={`px-2 py-1 text-xs font-bold rounded ${difficulty_color()}`}>
                     {difficulty_text()}
