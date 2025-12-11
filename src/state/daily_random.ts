@@ -158,3 +158,55 @@ const pastDate = new Date('2024-01-15');
 const pastRandom = getDailyRandom(pastDate);
 console.log(pastRandom.next()); // Will always be the same for Jan 15, 2024
 */
+
+
+
+// This version ensures IDs are consistent across all timezones
+export class TimezoneSafeDailyId {
+  private readonly startUTCDate: string; // YYYY-MM-DD format
+  
+  constructor(startDate: string = new Date().toISOString().split('T')[0]) {
+    this.startUTCDate = startDate;
+  }
+  
+  /**
+   * Get today's ID based on UTC date
+   */
+  getTodaysId(): number {
+    const todayUTC = new Date().toISOString().split('T')[0];
+    return this.daysBetween(this.startUTCDate, todayUTC);
+  }
+  
+  /**
+   * Get ID for a specific UTC date string
+   */
+  getIdForUTCDate(utcDate: string): number {
+    return this.daysBetween(this.startUTCDate, utcDate);
+  }
+  
+  /**
+   * Calculate days between two YYYY-MM-DD dates
+   */
+  private daysBetween(start: string, end: string): number {
+    const startDate = new Date(start + 'T00:00:00Z');
+    const endDate = new Date(end + 'T00:00:00Z');
+    const diffMs = endDate.getTime() - startDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  }
+  
+  /**
+   * Get UTC date for an ID
+   */
+  getUTCDateForId(id: number): string {
+    const startDate = new Date(this.startUTCDate + 'T00:00:00Z');
+    const targetDate = new Date(startDate.getTime() + id * 24 * 60 * 60 * 1000);
+    return targetDate.toISOString().split('T')[0];
+  }
+}
+
+const Daily_idGenerator = new TimezoneSafeDailyId('2026-01-01');
+
+export function get_daily_id() {
+  return Daily_idGenerator.getTodaysId()
+}

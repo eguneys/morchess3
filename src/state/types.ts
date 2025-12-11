@@ -2,6 +2,7 @@
 export type FEN = string
 
 export type Puzzle = {
+    id: number
     fen: FEN
 }
 

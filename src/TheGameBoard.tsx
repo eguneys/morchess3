@@ -3,7 +3,7 @@ import { type GameAPI, main as GameMain } from './thegame/main'
 import type { FEN } from './thegame/aligns'
 import type { SimulApi } from './thegame/simulation2'
 
-export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: () => void }) => {
+export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: () => void, set_update_steps: (_: number) => void }) => {
 
     let $el!: HTMLDivElement
 
@@ -13,6 +13,9 @@ export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: ()
 
     let load_fen_on_init: FEN | undefined
 
+    const set_update_steps = (steps: number) => {
+        props.set_update_steps(steps)
+    }
 
     createEffect(() => {
         props.reveal()
@@ -56,6 +59,7 @@ export const TheGameBoard = (props: { fen?: FEN, shuffle: () => void, reveal: ()
                     simul_api.load_position(load_fen_on_init)
                     load_fen_on_init = undefined
                 }
+                simul_api.set_update_steps(set_update_steps)
             })
 
         })

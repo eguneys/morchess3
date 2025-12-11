@@ -3,6 +3,7 @@ import { A, Route, Router, useLocation, useNavigate } from '@solidjs/router'
 import { TheGameBoard } from './TheGameBoard';
 import { type DifficultyTier, type PuzzleStats } from './state/types';
 import { MorStoreProvider, usePuzzles } from './state';
+import { createStore } from 'solid-js/store';
 
 const Legal = lazy(() => import("./Legal"));
 const About = lazy(() => import("./About"));
@@ -43,11 +44,15 @@ const Home = () => {
     const [shuffle, set_shuffle] = createSignal(void 0, { equals: false })
     const [reveal, set_reveal] = createSignal(void 0, { equals: false })
 
-    let s: PuzzleStats = { nb_steps: 0 }
+    let [s, set_s] = createStore({ nb_steps: 0 })
+
+    const set_update_steps = (steps: number) => {
+        set_s('nb_steps', steps)
+    }
 
     const stats = createMemo(() => s!)
 
-    const [selected_tier, _set_selected_tier] = createSignal<DifficultyTier>('b')
+    const [selected_tier, set_selected_tier] = createSignal<DifficultyTier>('b')
 
     const [puzzles] = usePuzzles()
     const puzzle_set = createMemo(() => puzzles.daily_puzzle_set)
@@ -63,18 +68,38 @@ const Home = () => {
                  class="relative w-full max-w-[600px] aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
                     <ErrorBoundary fallback={""}>
                         <Suspense>
-                            <TheGameBoard fen={puzzle()?.fen} shuffle={shuffle} reveal={reveal} />
+                            <TheGameBoard fen={puzzle()?.fen} shuffle={shuffle} reveal={reveal} set_update_steps={set_update_steps} />
                         </Suspense>
                     </ErrorBoundary>
                 </div>
             </div>
 
+
+
             {/* Right Column: Info & Controls */}
             <div class="lg:col-span-5 xl:col-span-4 space-y-6">
+
+            {/* Difficulty Selector */}
+            <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
+                {tiers.map((level) => (
+                    <button
+                        onClick={() => set_selected_tier(level as any)}
+                        class={`cursor-pointer flex-1 py-2 text-sm font-medium rounded-lg transition-all ${selected_tier() === level
+                                ? 'bg-indigo-600 text-white shadow-lg'
+                                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                            }`}
+                    >
+                        {difficulty_texts[level]}
+                    </button>
+                ))}
+            </div>
+
+
+
                 <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 shadow-sm">
                     <ErrorBoundary fallback={FailedPuzzleInfoCard}>
                         <Suspense>
-                            <PuzzleInfoCard stats={stats()} selected_tier={selected_tier()} />
+                            <PuzzleInfoCard stats={stats()} selected_tier={selected_tier()} puzzle_id={puzzle()?.id??0} />
                             <ActionButtons on_shuffle={set_shuffle} on_reveal={set_reveal}/>
                         </Suspense>
                     </ErrorBoundary>
@@ -133,13 +158,17 @@ const FailedPuzzleInfoCard = () => {
     </>)
 }
 
-const PuzzleInfoCard = (props: { stats: PuzzleStats, selected_tier: DifficultyTier }) => {
+const tiers: DifficultyTier[] = ['a', 'b', 'c']
+const difficulty_texts = { a: 'Easy', b: 'Medium', c: 'Hard' }
+const difficulty_colors = { a: 'bg-green-500/20 text-green-400', b: 'bg-yellow-500/20 text-yellow-400', c: 'bg-red-500/20 text-red-400' }
+
+const PuzzleInfoCard = (props: { stats: PuzzleStats, selected_tier: DifficultyTier, puzzle_id: number }) => {
 
     const selected_tier = createMemo(() => props.selected_tier)
 
-    const difficulty_texts = { a: 'Easy', b: 'Medium', c: 'Hard'}
 
     const difficulty_text = createMemo(() => difficulty_texts[selected_tier()])
+    const difficulty_color = createMemo(() => difficulty_colors[selected_tier()])
 
     const [puzzles] = usePuzzles()
 
@@ -152,14 +181,14 @@ const PuzzleInfoCard = (props: { stats: PuzzleStats, selected_tier: DifficultyTi
                 <span class="px-2 py-1 bg-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400 rounded">
                     {date_locale_string()}
                 </span>
-                <span class={`px-2 py-1 text-xs font-bold rounded ${'bg-green-500/20 text-green-400'}`}>
+                <span class={`px-2 py-1 text-xs font-bold rounded ${difficulty_color()}`}>
                     {difficulty_text()}
                 </span>
             </div>
 
-            <h1 class="text-2xl font-bold text-white mb-2">{'puzzle.title'}</h1>
+            <h1 class="text-2xl font-bold text-white mb-2">Puzzle #{props.puzzle_id}</h1>
             <p class="text-slate-400 mb-6 leading-relaxed">
-                {'puzzle.description'}
+                Reconstruct the original configuration consistent with pieces' attack relationships.
             </p>
 
             <div class="flex items-center gap-3 p-4 bg-slate-950/50 rounded-lg border border-slate-800 mb-6">

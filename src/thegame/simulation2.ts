@@ -1,6 +1,6 @@
 import type { SceneName } from "./main"
 import { batch, drag } from "./webgl/canvas"
-import { add, mulScalar, sub, vec2, type Vec2 } from "./math/vec2"
+import { add, distance, mulScalar, sub, vec2, type Vec2 } from "./math/vec2"
 import { AnimChannel } from "./anim"
 //import { hitbox_rect } from "./simulation"
 import { colors, vibrant } from './colors_in_gl'
@@ -72,6 +72,7 @@ type Aligns = {
 }
 
 function load_position(target: Board, shuffle = true) {
+    steps = 0
     const random_square = () => Math.floor(Math.random() * 64)
 
     pieces_on_board = []
@@ -115,6 +116,14 @@ function load_position(target: Board, shuffle = true) {
     })
 
     model_mis_aligns = []
+
+
+    is_game_over = false
+    endgame_timer = 0
+    endgame_anim_channels.x.followTo(0)
+    endgame_anim_channels.y.followTo(0)
+    endgame_anim_channels.r.followTo(0)
+    grid_animation.frames = []
 }
 
 let endgame_timer: number
@@ -133,6 +142,8 @@ type GridAnimation = {
 }
 
 let grid_animation: GridAnimation
+
+let steps: number
 
 export function _init() {
 
@@ -162,6 +173,7 @@ export function _init() {
     }
 }
 
+
 export function _update(delta: number) {
 
     update_aligns(delta)
@@ -178,6 +190,12 @@ export function _update(delta: number) {
 
     if (cursor.drag) {
         if (drag.has_moved_after_last_down) {
+
+            let dd = distance(vec2(cursor.drag.piece.xy.x.value, cursor.drag.piece.xy.y.value), sub(cursor.xy, cursor.drag.decay))
+
+            steps += dd
+            set_update_steps(Math.floor(steps / (grid_box.wh.x/ 8)))
+
             cursor.drag.piece.xy.x.followTo(cursor.xy.x - cursor.drag.decay.x)
             cursor.drag.piece.xy.y.followTo(cursor.xy.y - cursor.drag.decay.y)
         }
@@ -699,12 +717,18 @@ export type SimulApi =  {
     reveal_solution: () => void
     load_position: (fen: FEN) => void
     shuffle_board: () => void
+    set_update_steps: (fn: (_: number) => void) => void
 }
+
+let set_update_steps = (_: number) => {}
 
 export function _api() {
     
     let loaded_fen: FEN = ''
     return {
+        set_update_steps(update_steps: (_: number) => void) {
+            set_update_steps = update_steps
+        },
         reveal_solution() {
             load_position(fen_to_board(loaded_fen), false)
         },
