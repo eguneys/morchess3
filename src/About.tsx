@@ -32,6 +32,9 @@ export default () => {
             <p class="text-slate-400 leading-relaxed">
               The Mor Chess 3 project is open source, and its source code is available on <A href="https://github.com/eguneys/poker-tiles-26" target="_blank" class="link external">GitHub</A>.
             </p>
+            <p class="text-slate-400 leading-relaxed">
+              This project is a labor of love and runs without ads or premium features. If you enjoy the puzzles and want to help cover the server costs for the leaderboard, you can <A class="link" href="https://buymeacoffee.com/eguneys">support the developer here</A>.
+            </p>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">

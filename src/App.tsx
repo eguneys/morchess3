@@ -105,6 +105,8 @@ const Home = () => {
                         •
                         <A href="contact" class="link">Contact Us</A>
                         •
+                        <A href="https://buymeacoffee.com/eguneys" class="link">Support Us</A>
+                        •
                         <A href="https://github.com/eguneys/poker-tiles-26" target="_blank" class="link">GitHub</A>
                     </div>
                     <br /> 

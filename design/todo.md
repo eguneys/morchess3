@@ -1,6 +1,6 @@
 MORCHESS MVP TODO
 
-- [ ] Daily Puzzles
+- [x] Daily Puzzles
 - [ ] Progression Set (20 puzzles)
 - [ ] Simpler Tutorial (micro version)
 - [ ] Tutorial Set (full tutorial)
