@@ -141,7 +141,6 @@ export function create_puzzles(_store: MorStore): Puzzles {
             }
 
             let nb_steps = pstore.saved_daily_puzzle_set![selected_tier].stats.nb_steps
-            set_pstore('saved_daily_puzzle_set', selected_tier, 'fen', pstore.saved_daily_puzzle_set![selected_tier].base_fen)
             set_pstore('saved_daily_puzzle_set', selected_tier, 'stats', 'nb_solved', nb_steps)
         },
     }

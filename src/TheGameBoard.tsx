@@ -3,61 +3,134 @@ import { type GameAPI, main as GameMain } from './thegame/main'
 import type { FEN } from './thegame/aligns'
 import type { SimulApi } from './thegame/simulation2'
 
-export const TheGameBoard = (props: { fen?: FEN, target?: FEN, nb_steps?: number, set_update_fen: (_: FEN) => void , set_update_steps: (_: number) => void, set_update_solved: () => void }) => {
+/**
+ * A clean, loop-free integration between Solid and an imperative engine.
+ *
+ * - Solid props.fen/target/steps can change (e.g., selecting a new puzzle).
+ * - Engine can change fen/steps through its own UI.
+ * - A SyncController mediates the two sources safely.
+ */
 
-    let $el!: HTMLDivElement
+export const TheGameBoard = (props: {
+  fen?: FEN,
+  target?: FEN,
+  nb_steps?: number,
+  set_update_fen: (_: FEN) => void,
+  set_update_steps: (_: number) => void,
+  set_update_solved: () => void
+}) => {
 
-    let cleanup_early = false
-    let game_api: GameAPI
-    let simul_api: SimulApi
+  let el!: HTMLDivElement
+  let gameApi: GameAPI | null = null
+  let simulApi: SimulApi | null = null
+  let cleanupEarly = false
 
-    let load_fen_on_init: [FEN, FEN, number] | undefined
+  /**
+   * Sync controller:
+   * Tracks the latest values that the ENGINE is known to hold.
+   * Prevents Solid→Engine→Solid loops by distinguishing update origins.
+   */
+  const sync = {
+    fen: undefined as FEN | undefined,
+    target: undefined as FEN | undefined,
+    steps: undefined as number | undefined,
 
+    /**
+     * Called whenever Solid props change.
+     * This returns TRUE if engine must load a new position,
+     * or FALSE if props reflect what the engine already has.
+     */
+    shouldEngineLoad(f: FEN, t: FEN, s: number) {
+      return !(this.fen === f && this.target === t && this.steps === s)
+    },
 
-    createEffect(() => {
-        let fen = props.fen
-        let target = props.target
-        let steps = props.nb_steps ?? 0
-        if (!fen || !target) {
-            return
-        }
+    /**
+     * Mark that the engine now “owns” these values.
+     * Used after calling engine.load_position and after engine emits updates.
+     */
+    setEngineState(f: FEN, t: FEN, s: number) {
+      this.fen = f
+      this.target = t
+      this.steps = s
+    }
+  }
 
-        if (simul_api) {
-            simul_api.load_position(fen, target, steps)
-        } else {
-            load_fen_on_init = [fen, target, steps]
-        }
+  onMount(async () => {
+    const api = await GameMain(el)
+
+    if (cleanupEarly) {
+      api.cleanup()
+      return
+    }
+
+    gameApi = api
+
+    const sApi = await api.request_api()
+    simulApi = sApi
+
+    // Engine → Solid event bridges
+    simulApi.set_update_fen((fen: FEN) => {
+      // Engine-originated update
+      sync.fen = fen
+      queueMicrotask(() => {
+          props.set_update_fen(fen)
+      })
     })
 
-    onMount(() => {
-        GameMain($el).then((api: GameAPI) => {
-            if (cleanup_early) {
-                api.cleanup()
-                return
-            }
-            game_api = api
-            game_api.request_api().then((api: SimulApi) => {
-                simul_api = api
-                if (load_fen_on_init) {
-                    simul_api.load_position(...load_fen_on_init)
-                    load_fen_on_init = undefined
-                }
-                simul_api.set_update_steps(props.set_update_steps)
-                simul_api.set_update_fen(props.set_update_fen)
-                simul_api.set_update_solved(props.set_update_solved)
-            })
-
+    simulApi.set_update_steps((steps: number) => {
+      sync.steps = steps
+        queueMicrotask(() => {
+            props.set_update_steps(steps)
         })
     })
 
-    onCleanup(() => {
-        if (!game_api) {
-            cleanup_early = true
-            return
-        }
-        game_api.cleanup()
+    simulApi.set_update_solved(() => {
+        queueMicrotask(() => {
+            props.set_update_solved()
+        })
     })
 
-    return (<> <div ref={$el} class='game-wrap'></div> </>)
-}
+    // Initial load if props are ready at mount
+    const f = props.fen
+    const t = props.target
+    const s = props.nb_steps ?? 0
 
+    if (f && t) {
+      sync.setEngineState(f, t, s)
+      simulApi.load_position(f, t, s)
+    }
+  })
+
+  /**
+   * React to Solid-driven FEN/target/step changes.
+   * Only loads engine if they differ from known engine state.
+   */
+  createEffect(() => {
+    const f = props.fen
+    const t = props.target
+    const s = props.nb_steps ?? 0
+
+    if (!simulApi) return
+
+    if (!f || !t) return
+
+    if (!sync.shouldEngineLoad(f, t, s)) {
+      // Solid is just reflecting what engine already knows → ignore
+      return
+    }
+
+    // Solid is giving a new position → engine must load it
+    sync.setEngineState(f, t, s)
+    simulApi.load_position(f, t, s)
+  })
+
+  onCleanup(() => {
+    if (!gameApi) {
+      cleanupEarly = true
+      return
+    }
+    gameApi.cleanup()
+  })
+
+  return <div ref={el} class="game-wrap"></div>
+}

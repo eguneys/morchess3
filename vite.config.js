@@ -4,6 +4,6 @@ import solid from 'vite-plugin-solid'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [glsl(), solid(), tailwindcss()],
+  plugins: [glsl(), tailwindcss(), solid()],
   base: './',
 });

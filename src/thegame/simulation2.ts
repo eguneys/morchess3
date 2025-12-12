@@ -142,13 +142,6 @@ export function _init() {
         time: 0,
     }
 
-    load_position('', '', 0)
-    //load_position(fen_to_board('4k3/4b3/5pp1/3KP2p/1p5P/4B1P1/1P6/8 w - - 1 44'))
-    //load_position(fen_to_board('4rk2/3q1p2/2pp1Ppp/p1p5/2P2bN1/1P2Q3/P4PPP/4RK2 w - - 2 28'))
-    //load_position(fen_to_board('r6K/8/8/8/8/8/8/8 w - - 0 1'))
-    //load_position(fen_to_board('8/8/8/3p4/3K4/4P3/8/8 w - - 0 1'))
-    //load_position(fen_to_board('8/8/8/8/3K4/5N2/8/8 w - - 0 1'))
-
     endgame_timer = 0
     is_game_over = false
 
@@ -161,6 +154,14 @@ export function _init() {
             y: new AnimChannel(500).swayTo({ amplitude: -8, frequency: 13, bias: 0 }),
         }
     }
+
+
+    load_position('', '', 0)
+    //load_position(fen_to_board('4k3/4b3/5pp1/3KP2p/1p5P/4B1P1/1P6/8 w - - 1 44'))
+    //load_position(fen_to_board('4rk2/3q1p2/2pp1Ppp/p1p5/2P2bN1/1P2Q3/P4PPP/4RK2 w - - 2 28'))
+    //load_position(fen_to_board('r6K/8/8/8/8/8/8/8 w - - 0 1'))
+    //load_position(fen_to_board('8/8/8/3p4/3K4/4P3/8/8 w - - 0 1'))
+    //load_position(fen_to_board('8/8/8/8/3K4/5N2/8/8 w - - 0 1'))
 }
 
 
@@ -195,7 +196,6 @@ export function _update(delta: number) {
 
     let can_drag = !is_game_over && endgame_timer === 0
     if (can_drag && drag.is_just_down) {
-        //console.log(drag.is_just_down, drag.is_hovering, cursor.xy)
         const cursor_sq = cursor.sq
         if (cursor_sq !== undefined) {
 
@@ -702,9 +702,7 @@ function build_board_from_pieces() {
     }
 
     for (let pieces of pieces_on_board) {
-        if (pieces.sq !== undefined) {
-            res.set(pieces.pieces, pieces.sq)
-        }
+        res.set(pieces.pieces, pieces.sq ?? pieces.sq_base)
     }
     return res
 }
