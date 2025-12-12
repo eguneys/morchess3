@@ -41,6 +41,7 @@ type Cursor = {
 let cursor: Cursor
 
 let time: number
+let position_timer: number
 
 type PieceOnBoard = {
     pieces: Pieces,
@@ -72,6 +73,15 @@ type Aligns = {
 let c_board_fen: FEN
 
 function load_position(c_fen: FEN, t_fen: FEN, nb_steps: number) {
+
+    position_timer = 0
+
+    is_game_over = false
+    endgame_timer = 0
+    endgame_anim_channels.x.followTo(0)
+    endgame_anim_channels.y.followTo(0)
+    endgame_anim_channels.r.followTo(0)
+    grid_animation.frames = []
 
     steps = nb_steps * (grid_box.wh.x / 8)
 
@@ -107,13 +117,6 @@ function load_position(c_fen: FEN, t_fen: FEN, nb_steps: number) {
 
     model_mis_aligns = []
 
-
-    is_game_over = false
-    endgame_timer = 0
-    endgame_anim_channels.x.followTo(0)
-    endgame_anim_channels.y.followTo(0)
-    endgame_anim_channels.r.followTo(0)
-    grid_animation.frames = []
 }
 
 let endgame_timer: number
@@ -170,6 +173,7 @@ export function _update(delta: number) {
     update_aligns(delta)
 
     time += delta / 1000
+    position_timer += delta / 1000
 
     cursor.follow.x.followTo(drag.is_hovering[0], { speed: 1 })
     cursor.follow.y.followTo(drag.is_hovering[1], { speed: 1 })
@@ -194,7 +198,7 @@ export function _update(delta: number) {
 
     cursor.sq = pos_to_square(cursor.xy)
 
-    let can_drag = !is_game_over && endgame_timer === 0
+    let can_drag = !is_game_over && endgame_timer === 0 && position_timer > .8
     if (can_drag && drag.is_just_down) {
         const cursor_sq = cursor.sq
         if (cursor_sq !== undefined) {

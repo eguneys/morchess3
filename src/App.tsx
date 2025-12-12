@@ -7,6 +7,7 @@ import { MorStoreProvider, usePuzzles } from './state';
 const Legal = lazy(() => import("./Legal"));
 const About = lazy(() => import("./About"));
 const Contact = lazy(() => import("./Contact"));
+const Learn = lazy(() => import("./Learn"));
 
 export default function App() {
     return (<>
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/about" component={About}/>
         <Route path="/legal" component={Legal}/>
         <Route path="/contact" component={Contact}/>
+        <Route path="/learn" component={Learn}/>
     </Router>
     </>)
 }
@@ -54,7 +56,7 @@ const Home = () => {
             <div class="lg:col-span-7 xl:col-span-8 flex justify-center">
                 <div
                 id="the-game-board"
-                 class="relative w-full max-w-[600px] aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
+                 class="relative w-full max-w-150 aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
                     <ErrorBoundary fallback={""}>
                         <Suspense>
                             <TheGameBoard fen={puzzle()?.fen} target={puzzle()?.base_fen} nb_steps={stats()?.nb_steps} set_update_steps={set_daily_steps} set_update_fen={set_daily_fen} set_update_solved={set_solved} />
@@ -230,7 +232,7 @@ const PuzzleInfoCard = (props: { stats?: PuzzleStats, selected_tier: DifficultyT
         </>)
 }
 
-export type Navigation = 'home' | 'about' | 'legal'
+export type Navigation = 'home' | 'about' | 'legal' | 'learn'
 
 const Navbar = (props: { isMobileMenuOpen: boolean, setIsMobileMenuOpen: (v: boolean) => void }) => {
 
@@ -252,10 +254,6 @@ const Navbar = (props: { isMobileMenuOpen: boolean, setIsMobileMenuOpen: (v: boo
 
     const active_color = (path: Navigation) => isActive(path) ? 'bg-slate-800 text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-indigo-400'
 
-    const home_color = createMemo(() => active_color('home'))
-    const about_color = createMemo(() =>active_color('about'))
-    const legal_color = createMemo(() =>active_color('legal'))
-
     const active_link = (path: Navigation) => isActive(path) ? 'text-white' : ''
 
     const navigateAndClose = (path: string) => {
@@ -274,6 +272,7 @@ const Navbar = (props: { isMobileMenuOpen: boolean, setIsMobileMenuOpen: (v: boo
                 </div>
                 <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
                     <A href="/" class={`${active_link('home')} hover:text-indigo-400 transition-colors`}>Puzzles</A>
+                    <A href="/learn" class={`${active_link('learn')} hover:text-indigo-400 transition-colors`}>Learn</A>
                     <A href="/about" class={`${active_link('about')} hover:text-indigo-400 transition-colors`}>About</A>
                 </div>
                 {/* Mobile Menu Button */}
@@ -294,19 +293,25 @@ const Navbar = (props: { isMobileMenuOpen: boolean, setIsMobileMenuOpen: (v: boo
                     <div class="flex flex-col p-4 space-y-2">
                         <button
                             onClick={() => navigateAndClose('/')}
-                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${home_color()}`}
+                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${active_color('home')}`}
                         >
                             Puzzles
                         </button>
                         <button
+                            onClick={() => navigateAndClose('/learn')}
+                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${active_color('learn')}`}
+                        >
+                            Learn
+                        </button>
+                        <button
                             onClick={() => navigateAndClose('/about')}
-                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${about_color()}`}
+                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${active_color('about')}`}
                         >
                             About
                         </button>
                         <button
                             onClick={() => navigateAndClose('legal')}
-                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${legal_color()}`}
+                            class={`text-left px-4 py-3 rounded-lg text-sm font-medium ${active_color('legal')}`}
                         >
                             Legal
                         </button>
