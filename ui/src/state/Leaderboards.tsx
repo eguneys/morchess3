@@ -19,6 +19,8 @@ type Leaderboard = {
 
 export type DifficultyLeaderboard = Record<DifficultyTier, Leaderboard>
 
+export type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'yearly'
+
 type State = {
     daily: DifficultyLeaderboard
     weekly: DifficultyLeaderboard
@@ -29,9 +31,7 @@ type State = {
 type Actions = {
     set_leaderboard_handle: (handle: string) => void
     send_daily_score: (score: number, difficulty: DifficultyTier) => void
-    fetch_weekly(): void
-    fetch_monthly(): void
-    fetch_yearly(): void
+    fetch_period(period: TimePeriod): void
 }
 
 export type Leaderboards = [State, Actions]
@@ -46,10 +46,10 @@ export function create_leaderboards(_store: MorStore): Leaderboards {
 
     const $agent = create_agent()
 
-    const [fetch_daily_leaderboard, _set_fetch_daily_leaderboard] = createSignal(void 0, { equals: false })
-    const [should_fetch_weekly_leaderboard, set_fetch_weekly_leaderboard] = createSignal(false, { equals: false })
-    const [should_fetch_monthly_leaderboard, set_fetch_monthly_leaderboard] = createSignal(false, { equals: false })
-    const [should_fetch_yearly_leaderboard, set_fetch_yearly_leaderboard] = createSignal(false, { equals: false })
+    const [fetch_daily_leaderboard, set_fetch_daily_leaderboard] = createSignal(void 0, { equals: false })
+    const [should_fetch_weekly_leaderboard, set_fetch_weekly_leaderboard] = createSignal(false)
+    const [should_fetch_monthly_leaderboard, set_fetch_monthly_leaderboard] = createSignal(false)
+    const [should_fetch_yearly_leaderboard, set_fetch_yearly_leaderboard] = createSignal(false)
     
     const daily_leaderboard = createAsync<DifficultyLeaderboard>(() => {
         fetch_daily_leaderboard()
@@ -104,7 +104,6 @@ export function create_leaderboards(_store: MorStore): Leaderboards {
             let res = await $agent.set_leaderboard_handle(handle)
 
             fetch_daily_leaderboard()
-
             return res
         },
 
@@ -115,14 +114,16 @@ export function create_leaderboards(_store: MorStore): Leaderboards {
 
             return res
         },
-        fetch_weekly() {
-            set_fetch_weekly_leaderboard(true)
-        },
-        fetch_monthly() {
-            set_fetch_monthly_leaderboard(true)
-        },
-        fetch_yearly() {
-            set_fetch_yearly_leaderboard(true)
+        fetch_period(period: TimePeriod) {
+            if (period === 'daily') {
+                set_fetch_daily_leaderboard(void 0)
+            } else if (period === 'weekly') {
+                set_fetch_weekly_leaderboard(true)
+            } else if (period === 'monthly') {
+                set_fetch_monthly_leaderboard(true)
+            } else if (period === 'yearly') {
+                set_fetch_yearly_leaderboard(true)
+            }
         },
     }
 

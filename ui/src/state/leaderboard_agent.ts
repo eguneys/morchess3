@@ -43,12 +43,28 @@ async function $post(path: string, body: any = {}) {
 }
 
 
+const mock_list = () => {
+    let res = []
+
+    for (let i = 1; i < 100; i++) {
+        res.push({
+            rank: i,
+            handle: 'hello' + i,
+            score: Math.floor(Math.random() * 100)
+        })
+    }
+
+    return res
+}
+const mock_daily_leaderboard = { a: { list: mock_list(), you: { rank: 8, score: 8, handle: undefined } }, b: { list: mock_list() } , c: { list: [], you: { rank: 8, score: 8, handle: 'ok'}} }
 export function create_agent(): Agent {
     return {
         async daily_leaderboard() {
+            //return mock_daily_leaderboard
             return $('/daily')
         },
         async weekly_leaderboard() {
+            //return mock_daily_leaderboard
             return $('/weekly')
         },
         async monthly_leaderboard() {
@@ -58,6 +74,7 @@ export function create_agent(): Agent {
             return $('/yearly')
         },
         async set_leaderboard_handle(handle: string) {
+            //return
             return $post('/handle', { handle })
         },
         async send_daily_score(score: number, difficulty: DifficultyTier) {
