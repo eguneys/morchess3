@@ -56,6 +56,7 @@ const mock_list = () => {
 
     return res
 }
+// @ts-ignore
 const mock_daily_leaderboard = { a: { list: mock_list(), you: { rank: 8, score: 8, handle: undefined } }, b: { list: mock_list() } , c: { list: [], you: { rank: 8, score: 8, handle: 'ok'}} }
 export function create_agent(): Agent {
     return {
