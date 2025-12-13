@@ -57,10 +57,12 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 
 
+import { PORT as CONFIG_PORT } from './config.ts'
+
 init_db().then(async (db) => {
   await runMigrations(db)
 
-  const PORT = process.env.PORT || 3300
+  const PORT = process.env.PORT || CONFIG_PORT || 3300
 
   app.listen(PORT, () => {
     console.log(`Mor Chess API running on ${PORT}`)

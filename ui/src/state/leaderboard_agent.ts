@@ -12,7 +12,7 @@ type Agent = {
 
 }
 
-export const API_ENDPOINT = import.meta.env.DEV ? 'http://localhost:3300' : `https://api.morchess.com:3300`
+export const API_ENDPOINT = import.meta.env.DEV ? 'http://localhost:3300' : `https://api.morchess.com`
 const $ = async (path: string, opts?: RequestInit) => {
 
     const controller = new AbortController()
