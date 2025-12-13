@@ -64,8 +64,11 @@ init_db().then(async (db) => {
 
   const PORT = process.env.PORT || CONFIG_PORT || 3300
 
-  app.listen(PORT, () => {
-    console.log(`Mor Chess API running on ${PORT}`)
+  app.listen(PORT, (err) => {
+    if (err) {
+      log('error', err.message)
+    }
+    log('info', `Mor Chess API running on ${PORT}`)
   })
 
 })
