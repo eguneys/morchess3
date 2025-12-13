@@ -1,6 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import fs from 'fs'
 import path from 'path'
+import { DEV } from './config.ts'
 
 type Migration = {
     id: number
@@ -26,6 +27,10 @@ export async function runMigrations(db: Database) {
 
     for (const file of files) {
         if (applied.has(file)) continue
+
+        if (!DEV && file.match(/test/)) {
+            continue
+        }
 
         const sql = fs.readFileSync(`./migrations/${file}`, 'utf8')
 

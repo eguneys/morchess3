@@ -106,6 +106,19 @@ router.post('/handle', async (req, res) => {
             Date.now(),
             req.user_id,
         )
+
+
+        const today = getTodaysUTC()
+        const thisWeek = getWeeksUTC()
+        const thisMonth = getMonthsUTC()
+        const thisYear = getYearsUTC()
+
+        invalidateCache(`daily:${today}`)
+        invalidateCache(`weekly:${thisWeek}`)
+        /* maybe remove */
+        invalidateCache(`monthly:${thisMonth}`)
+        invalidateCache(`yearly:${thisYear}`)
+
         res.json({ ok: true })
     } catch (e) {
         res.status(500).json({ error: 'Failed to set handle' })
@@ -116,8 +129,8 @@ router.post('/handle', async (req, res) => {
 router.post('/score', async (req, res) => {
 
 
-    await rateLimit(req.user_id!, 'score_fast', 1, 10)
-    await rateLimit(req.user_id!, 'score_hour', 3, 3600)
+    await rateLimit(req.user_id!, 'score_fast', 3, 10)
+    await rateLimit(req.user_id!, 'score_hour', 10, 3600)
 
     const { score, difficulty, hash } = req.body
     const today = getTodaysUTC()
@@ -135,19 +148,13 @@ router.post('/score', async (req, res) => {
         return res.status(400).json({ error: 'Invalid score' })
     }
 
-    const user = await db.prepare<{}, { id: string}>(`SELECT id FROM users ORDER BY id DESC LIMIT 1`).get({})
-    if (!user) {
-        return res.status(400).json({ error: 'Handle not set' })
-    }
-
-
     try {
 
 
         const row = await db.prepare<[string, string, string], { score: number }>(`
             SELECT score FROM daily_scores
             WHERE user_id = ? AND date_utc = ? AND difficulty = ?
-        `).get(user.id, today, difficulty)
+        `).get(req.user_id!, today, difficulty)
 
         if (row) {
             return res.json({ ok: true, score: row.score })
@@ -158,7 +165,7 @@ router.post('/score', async (req, res) => {
              (user_id, date_utc, difficulty, score, created_at)
              VALUES (?, ?, ?, ?, ?)`,
         ).run(
-            user.id,
+            req.user_id,
             today,
             difficulty,
             score,
@@ -166,9 +173,17 @@ router.post('/score', async (req, res) => {
         )
 
         const thisWeek = getWeeksUTC()
+        const thisMonth = getMonthsUTC()
+        const thisYear = getYearsUTC()
+
+
 
         invalidateCache(`daily:${today}`)
         invalidateCache(`weekly:${thisWeek}`)
+        /* maybe remove */
+        invalidateCache(`monthly:${thisMonth}`)
+        invalidateCache(`yearly:${thisYear}`)
+
 
 
         res.json({ ok: true })
@@ -180,7 +195,7 @@ router.post('/score', async (req, res) => {
 
 router.get('/daily', async (req, res) => {
 
-    await rateLimit(req.user_id!, 'handle_fast', 5, 10)
+    await rateLimit(req.user_id!, 'handle_fast', 8, 10)
     await rateLimit(req.user_id!, 'handle_hour', 60, 3600)
 
     const date = getTodaysUTC()
@@ -257,8 +272,6 @@ router.get('/yearly', async (req, res) => {
 
 const rows2leaderboard = (rows: LeaderboardRow[], tier: DifficultyTier, user_id: UserDbId) => {
 
-    rows = rows.filter(_ => _.difficulty === tier)
-
     let list: Ranking[] = rows.map((row, i) => ({
         rank: i + 1,
         handle: row.handle,
@@ -280,43 +293,46 @@ const rows2leaderboard = (rows: LeaderboardRow[], tier: DifficultyTier, user_id:
     }
 }
 
-type LeaderboardRow = { user_id: UserDbId, handle: string, score: number, created_at: number, difficulty: string }
-
-async function computeDailyLeaderboard(since: string, user_id: UserDbId) {
-    const rows = await db.prepare<string, LeaderboardRow>(`
+type LeaderboardRow = { user_id: UserDbId, handle: string, score: number, created_at: number }
+async function computeDailyLeaderboard(date: string, user_id: UserDbId) {
+    const rows = await db.prepare<string, LeaderboardRow & { difficulty: DifficultyTier } >(`
         SELECT u.id as user_id, u.handle, d.score, d.created_at, d.difficulty
         FROM daily_scores d
         JOIN users u ON u.id = d.user_id
-        WHERE d.created_at >= ?
+        WHERE d.date_utc = ?
         ORDER BY d.score ASC
         LIMIT 100
-    `).all(since)
+    `).all(date)
 
     return {
-        a: rows2leaderboard(rows, 'a', user_id),
-        b: rows2leaderboard(rows, 'b', user_id),
-        c: rows2leaderboard(rows, 'c', user_id),
+        a: rows2leaderboard(rows.filter(_ => _.difficulty === 'a'), 'a', user_id),
+        b: rows2leaderboard(rows.filter(_ => _.difficulty === 'b'), 'b', user_id),
+        c: rows2leaderboard(rows.filter(_ => _.difficulty === 'c'), 'c', user_id),
     }
 }
 
 async function computeWeeklyLeaderboard(since: string, user_id: UserDbId) {
-    const rows = await db.prepare<string, LeaderboardRow>(`
-        SELECT u.id as user_id, u.handle, d.difficulty,
+    const rows_by_difficulty = db.prepare<[string, DifficultyTier], LeaderboardRow>(`
+        SELECT u.id as user_id, u.handle,
         AVG(d.score) as score,
         MIN(d.created_at) as created_at
         FROM daily_scores d
         JOIN users u ON u.id = d.user_id
-        WHERE d.created_at >= ?
+        WHERE d.date_utc >= ?
+        AND d.difficulty = ?
         GROUP BY u.id
         ORDER BY score ASC
         LIMIT 100;
-    `).all(since)
+    `)
+    
+    let a_rows = await rows_by_difficulty.all(since, 'a')
+    let b_rows = await rows_by_difficulty.all(since, 'b')
+    let c_rows = await rows_by_difficulty.all(since, 'c')
 
-    console.log(rows, since)
     return {
-        a: rows2leaderboard(rows, 'a', user_id),
-        b: rows2leaderboard(rows, 'b', user_id),
-        c: rows2leaderboard(rows, 'c', user_id),
+        a: rows2leaderboard(a_rows, 'a', user_id),
+        b: rows2leaderboard(b_rows, 'b', user_id),
+        c: rows2leaderboard(c_rows, 'c', user_id),
     }
 }
 

@@ -129,16 +129,20 @@ export function create_puzzles(store: MorStore): Puzzles {
             let nb_steps = pstore.saved_daily_puzzle_set![selected_tier].stats.nb_steps
             set_pstore('saved_daily_puzzle_set', selected_tier, 'fen', pstore.saved_daily_puzzle_set![selected_tier].base_fen)
 
-            if (pstore.saved_daily_puzzle_set![selected_tier].stats.nb_solved) {
-            } else {
-                set_pstore('saved_daily_puzzle_set', selected_tier, 'stats', 'nb_revealed', nb_steps)
+            if (pstore.saved_daily_puzzle_set![selected_tier].stats.nb_solved !== undefined) {
+                return
             }
 
+            set_pstore('saved_daily_puzzle_set', selected_tier, 'stats', 'nb_revealed', nb_steps)
+
+            /* debug */
+            /*
             let score = nb_steps
 
             let [, {send_daily_score}] = store.leaderboards
 
             send_daily_score(score, selected_tier)
+            */
         },
         set_solved() {
             let selected_tier = pstore.daily_selected_tier
@@ -146,8 +150,19 @@ export function create_puzzles(store: MorStore): Puzzles {
                 return
             }
 
+
+            if (pstore.saved_daily_puzzle_set![selected_tier].stats.nb_revealed !== undefined) {
+                return
+            }
+
             let nb_steps = pstore.saved_daily_puzzle_set![selected_tier].stats.nb_steps
             set_pstore('saved_daily_puzzle_set', selected_tier, 'stats', 'nb_solved', nb_steps)
+
+            let score = nb_steps
+
+            let [, {send_daily_score}] = store.leaderboards
+
+            send_daily_score(score, selected_tier)
         },
     }
 

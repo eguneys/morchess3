@@ -104,6 +104,12 @@ export function create_leaderboards(_store: MorStore): Leaderboards {
             let res = await $agent.set_leaderboard_handle(handle)
 
             set_fetch_daily_leaderboard()
+
+            /* really force it */
+            set_fetch_weekly_leaderboard(false)
+            set_fetch_monthly_leaderboard(false)
+            set_fetch_yearly_leaderboard(false)
+
             set_fetch_weekly_leaderboard(true)
             set_fetch_monthly_leaderboard(true)
             set_fetch_yearly_leaderboard(true)
@@ -114,6 +120,11 @@ export function create_leaderboards(_store: MorStore): Leaderboards {
             let res = await $agent.send_daily_score(score, difficulty)
 
             set_fetch_daily_leaderboard()
+            /* really force it */
+            set_fetch_weekly_leaderboard(false)
+            set_fetch_monthly_leaderboard(false)
+            set_fetch_yearly_leaderboard(false)
+
             set_fetch_weekly_leaderboard(true)
             set_fetch_monthly_leaderboard(true)
             set_fetch_yearly_leaderboard(true)

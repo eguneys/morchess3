@@ -18,9 +18,9 @@ CREATE TABLE daily_scores (
     user_id TEXT NOT NULL,
     difficulty TEXT NOT NULL,
     score INTEGER NOT NULL,
-    created_at INTEGER NOT NULL,
-
-    UNIQUE(user_id, created_at, difficulty),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    date_utc   TEXT NOT NULL DEFAULT (date('now')),
+    UNIQUE(user_id, date_utc, difficulty),
     FOREIGN KEY(user_id) REFERENCES users(id)
 );
 

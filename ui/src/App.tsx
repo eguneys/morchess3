@@ -426,7 +426,12 @@ const Difficulty_Tiers: DifficultyTier[] = ['a', 'b', 'c']
 
 const Leaderboard = () => {
     const [period, set_period] = createSignal<TimePeriod>('daily')
-    const [difficulty, set_difficulty] = createSignal<DifficultyTier>('b')
+    //const [difficulty, set_difficulty] = createSignal<DifficultyTier>('b')
+
+    const [puzzles, { set_daily_tier }] = usePuzzles()
+
+    const difficulty = createMemo(() => puzzles.daily_selected_tier)
+    const set_difficulty = set_daily_tier
 
     const [board, { fetch_period, set_leaderboard_handle }] = useLeaderboards()
 
