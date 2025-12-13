@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
 set -e
 
-#echo "Building..."
-#pnpm run build
+SERVER="morchess"
+APP_DIR="/var/www/morchess-api"
 
-echo "Deploying..."
+
+echo "▶ Syncing application files..."
 rsync -av --delete \
+  src/ \
   package.json \
-  node_modules \
-  morchess:/var/www/morchess-api/
+  pnpm-lock.yaml \
+  pnpm-workspace.yaml \
+  $SERVER:$APP_DIR/
 
-ssh morchess "mkdir -p /var/www/morchess-api/data"
+echo "▶ Installing production dependencies on server..."
+ssh $SERVER "cd $APP_DIR && pnpm install --frozen-lockfile --prod"
 
-echo "Restarting service..."
-ssh morchess "sudo systemctl restart morchess"
+echo "▶ Restarting service..."
+ssh $SERVER "sudo systemctl restart morchess"
 
-echo "Done."
+echo "✅ Deployment complete"
