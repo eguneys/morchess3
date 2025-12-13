@@ -8,7 +8,7 @@ type Migration = {
     applied_at: number
 }
 
-async function runMigrations(db: Database) {
+export async function runMigrations(db: Database) {
 
     await db.exec(`
         CREATE TABLE IF NOT EXISTS migrations (

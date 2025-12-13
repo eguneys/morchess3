@@ -1,13 +1,9 @@
 import { db } from './db_init.ts'
+import { RateLimitDb } from './types.ts'
 
 export class RateLimitError extends Error {}
 
-type RateLimit = {
-    key: string
-    count: number
-    reset_at: number
-}
-
+type RateLimit = RateLimitDb
 
 export async function rateLimit(
   userId: string,

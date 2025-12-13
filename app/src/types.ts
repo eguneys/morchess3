@@ -1,0 +1,38 @@
+export type UserDbId = number
+export type UserDb = {
+    id: UserDbId
+    handle: string | null
+    created_at: number
+}
+
+export type SessionDbId = string
+export type SessionsDb = {
+    session_id: SessionDbId
+    user_id: UserDbId
+    created_at: string
+    last_seen_at: string
+}
+
+
+export type RateLimitDb = {
+    key: string
+    count: number
+    reset_at: number
+}
+
+export type DifficultyTier = 'a' | 'b' | 'c'
+
+export type DailyScoreDbId = number
+export type DailyScoreDb = {
+    id: DailyScoreDbId,
+    user_id: UserDbId,
+    date_utc: string,
+    difficulty: DifficultyTier,
+    score: number
+    created_at: number
+}
+
+
+export type DifficultyLeaderboard = {
+
+}

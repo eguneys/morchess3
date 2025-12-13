@@ -5,6 +5,7 @@ import { RateLimitError } from "./rate_limit.ts";
 import { inc, metrics } from "./metrics.ts";
 import { router } from "./controller.ts";
 import bodyParser from "body-parser";
+import { runMigrations } from "./migrations.ts";
 
 
 let app = express()
@@ -50,7 +51,8 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 
 
-init_db().then(() => {
+init_db().then(async (db) => {
+  await runMigrations(db)
 
   const PORT = process.env.PORT || 3300
 
