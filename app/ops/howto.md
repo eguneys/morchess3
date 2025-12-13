@@ -14,3 +14,9 @@ journalctl -u morchess -f
 
 ## Restart
 sudo systemctl restart morchess
+
+
+## Deploy Folder Ownerships
+sudo mkdir -p /var/www/morchess-api
+sudo chown -R deploy:deploy /var/www/morchess-api
+

@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Building..."
-pnpm run build
+#echo "Building..."
+#pnpm run build
 
 echo "Deploying..."
 rsync -av --delete \
-  dist \
   package.json \
   node_modules \
   morchess:/var/www/morchess-api/
