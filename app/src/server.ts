@@ -1,11 +1,11 @@
-import { init_db } from "./db_init.ts";
-import { log } from "./logging.ts";
+import { init_db } from "./db_init.js";
+import { log } from "./logging.js";
 import express from 'express'
-import { RateLimitError } from "./rate_limit.ts";
-import { inc, metrics } from "./metrics.ts";
-import { router } from "./controller.ts";
+import { RateLimitError } from "./rate_limit.js";
+import { inc, metrics } from "./metrics.js";
+import { router } from "./controller.js";
 import bodyParser from "body-parser";
-import { runMigrations } from "./migrations.ts";
+import { runMigrations } from "./migrations.js";
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 
@@ -57,7 +57,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 
 
 
-import { PORT as CONFIG_PORT } from './config.ts'
+import { PORT as CONFIG_PORT } from './config.js'
 
 init_db().then(async (db) => {
   await runMigrations(db)
@@ -67,6 +67,7 @@ init_db().then(async (db) => {
   app.listen(PORT, (err) => {
     if (err) {
       log('error', err.message)
+      return
     }
     log('info', `Mor Chess API running on ${PORT}`)
   })

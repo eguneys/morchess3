@@ -1,7 +1,7 @@
 import type { Database } from 'better-sqlite3'
 import fs from 'fs'
 import path from 'path'
-import { DEV } from './config.ts'
+import { DEV } from './config.js'
 
 type Migration = {
     id: number

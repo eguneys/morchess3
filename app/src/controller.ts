@@ -1,13 +1,13 @@
 import { Router } from "express";
-import { db } from "./db_init.ts";
+import { db } from "./db_init.js";
 
 import crypto from 'crypto'
-import { rateLimit, RateLimitError } from "./rate_limit.ts";
-import { getCache, invalidateCache, setCache } from "./cache.ts";
-import type { DifficultyLeaderboard, DifficultyTier, Ranking, UserDbId } from "./types.ts";
-import { getMonthsUTC, getTodaysUTC, getWeeksUTC, getYearsUTC } from "./dates.ts";
+import { rateLimit, RateLimitError } from "./rate_limit.js";
+import { getCache, invalidateCache, setCache } from "./cache.js";
+import type { DifficultyLeaderboard, DifficultyTier, Ranking, UserDbId } from "./types.js";
+import { getMonthsUTC, getTodaysUTC, getWeeksUTC, getYearsUTC } from "./dates.js";
 import { getDefaultHighWaterMark } from "stream";
-import { DEV } from "./config.ts";
+import { DEV } from "./config.js";
 
 
 export const gen_id8 = () => Math.random().toString(16).slice(2, 10)
@@ -200,73 +200,26 @@ router.get('/daily', async (req, res) => {
 
     const date = getTodaysUTC()
 
-    const cacheKey = `daily:${date}`
-
-    const cached = getCache<Ranking[]>(cacheKey)
-
-    if (cached) {
-        return res.send(cached)
-    }
-
     const leaderboard = await computeDailyLeaderboard(date, req.user_id!)
-
-    setCache(cacheKey, leaderboard, 60_000)
-
     res.send(leaderboard)
 })
 
 router.get('/weekly', async (req, res) => {
     const date = getWeeksUTC()
-
-    const cacheKey = `weekly:${date}`
-
-    const cached = getCache<Ranking[]>(cacheKey)
-
-    if (cached) {
-        return res.send(cached)
-    }
-
     const leaderboard = await computeWeeklyLeaderboard(date, req.user_id!)
-
-    setCache(cacheKey, leaderboard, 3 * 60_000)
-
     res.send(leaderboard)
 })
 
 router.get('/monthly', async (req, res) => {
     const date = getMonthsUTC()
-
-    const cacheKey = `monthly:${date}`
-
-    const cached = getCache<Ranking[]>(cacheKey)
-
-    if (cached) {
-        return res.send(cached)
-    }
-
     const leaderboard = await computeWeeklyLeaderboard(date, req.user_id!)
-
-    setCache(cacheKey, leaderboard, 10 * 60_000)
-
     res.send(leaderboard)
 })
 
 
 router.get('/yearly', async (req, res) => {
     const date = getYearsUTC()
-
-    const cacheKey = `yearly:${date}`
-
-    const cached = getCache<Ranking[]>(cacheKey)
-
-    if (cached) {
-        return res.send(cached)
-    }
-
     const leaderboard = await computeWeeklyLeaderboard(date, req.user_id!)
-
-    setCache(cacheKey, leaderboard, 30 * 60_000)
-
     res.send(leaderboard)
 })
 
@@ -295,7 +248,16 @@ const rows2leaderboard = (rows: LeaderboardRow[], tier: DifficultyTier, user_id:
 
 type LeaderboardRow = { user_id: UserDbId, handle: string, score: number, created_at: number }
 async function computeDailyLeaderboard(date: string, user_id: UserDbId) {
-    const rows = await db.prepare<string, LeaderboardRow & { difficulty: DifficultyTier } >(`
+
+    let rows: (LeaderboardRow & { difficulty: DifficultyTier })[]
+
+    let cacheKey = `daily:${date}`
+    let cached = getCache<(LeaderboardRow & { difficulty: DifficultyTier } )[]>(cacheKey)
+
+    if (cached) {
+        rows = cached
+    } else {
+        rows = await db.prepare<string, LeaderboardRow & { difficulty: DifficultyTier }>(`
         SELECT u.id as user_id, u.handle, d.score, d.created_at, d.difficulty
         FROM daily_scores d
         JOIN users u ON u.id = d.user_id
@@ -303,6 +265,8 @@ async function computeDailyLeaderboard(date: string, user_id: UserDbId) {
         ORDER BY d.score ASC
         LIMIT 100
     `).all(date)
+        setCache(cacheKey, rows, 30 * 60_000)
+    }
 
     return {
         a: rows2leaderboard(rows.filter(_ => _.difficulty === 'a'), 'a', user_id),
@@ -312,7 +276,8 @@ async function computeDailyLeaderboard(date: string, user_id: UserDbId) {
 }
 
 async function computeWeeklyLeaderboard(since: string, user_id: UserDbId) {
-    const rows_by_difficulty = db.prepare<[string, DifficultyTier], LeaderboardRow>(`
+
+    const get_rows_by_difficulty = db.prepare<[string, DifficultyTier], LeaderboardRow>(`
         SELECT u.id as user_id, u.handle,
         AVG(d.score) as score,
         MIN(d.created_at) as created_at
@@ -324,10 +289,25 @@ async function computeWeeklyLeaderboard(since: string, user_id: UserDbId) {
         ORDER BY score ASC
         LIMIT 100;
     `)
-    
-    let a_rows = await rows_by_difficulty.all(since, 'a')
-    let b_rows = await rows_by_difficulty.all(since, 'b')
-    let c_rows = await rows_by_difficulty.all(since, 'c')
+
+    const with_cache = async (tier: DifficultyTier) => {
+        let rows: LeaderboardRow[]
+
+        let cacheKey = `weekly:${since}`
+        let cached = getCache<LeaderboardRow[]>(cacheKey)
+
+        if (cached) {
+            rows= cached
+        } else {
+            rows = await get_rows_by_difficulty.all(since, tier)
+            setCache(cacheKey, rows, 30 * 60_000)
+        }
+        return rows
+    }
+
+    let a_rows = await with_cache('a')
+    let b_rows = await with_cache('b')
+    let c_rows = await with_cache('c')
 
     return {
         a: rows2leaderboard(a_rows, 'a', user_id),

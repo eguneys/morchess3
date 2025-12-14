@@ -1,5 +1,5 @@
-import { db } from './db_init.ts'
-import { type RateLimitDb } from './types.ts'
+import { db } from './db_init.js'
+import { type RateLimitDb } from './types.js'
 
 export class RateLimitError extends Error {}
 
