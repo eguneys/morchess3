@@ -30,12 +30,12 @@ function Layout(props: { children?: JSX.Element }) {
 
     return (<>
         <div class="min-h-screen flex flex-col">
-            <Navbar isMobileMenuOpen={isMobileMenuOpen()} setIsMobileMenuOpen={setIsMobileMenuOpen}/>
-            <main class="grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12"  onClick={() => isMobileMenuOpen() && setIsMobileMenuOpen(false)}>
-                <MorStoreProvider>
+            <MorStoreProvider>
+                <Navbar isMobileMenuOpen={isMobileMenuOpen()} setIsMobileMenuOpen={setIsMobileMenuOpen} />
+                <main class="grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12" onClick={() => isMobileMenuOpen() && setIsMobileMenuOpen(false)}>
                     {props.children}
-                </MorStoreProvider>
-            </main>
+                </main>
+            </MorStoreProvider>
         </div>
     </>)
 }
@@ -290,11 +290,14 @@ const Navbar = (props: { isMobileMenuOpen: boolean, setIsMobileMenuOpen: (v: boo
                     </div>
                     <A href="/" class="text-xl font-bold tracking-tight text-white">Mor Chess 3 {dev()}</A>
                 </div>
+                <div class="flex items-center gap-6">
                 <div class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-400">
                     <A href="/" class={`${active_link('home')} hover:text-indigo-400 transition-colors`}>Puzzles</A>
                     <A href="/learn" class={`${active_link('learn')} hover:text-indigo-400 transition-colors`}>Learn</A>
                     <A href="/about" class={`${active_link('about')} hover:text-indigo-400 transition-colors`}>About</A>
                 </div>
+
+                <SoundToggle />
                 {/* Mobile Menu Button */}
                 <button
                     class="md:hidden text-slate-300 hover:text-white p-2"
@@ -306,8 +309,10 @@ const Navbar = (props: { isMobileMenuOpen: boolean, setIsMobileMenuOpen: (v: boo
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
                     )}
                 </button>
+                </div>
             </div>
-                    {/* Mobile Menu Dropdown */}
+
+            {/* Mobile Menu Dropdown */}
             <Show when={props.isMobileMenuOpen}>
                 <div class="md:hidden absolute top-16 left-0 w-full bg-slate-900 border-b border-slate-800 shadow-2xl animate-in slide-in-from-top-2 duration-200">
                     <div class="flex flex-col p-4 space-y-2">
@@ -640,5 +645,33 @@ export const __PuzzleSolved = () => {
             </div>
         </div>
 
+    </>)
+}
+
+
+const SoundToggle = () => {
+
+    const [puzzles,{ set_sound_enabled}] = usePuzzles()
+
+    const setSoundEnabled = set_sound_enabled
+    const soundEnabled = createMemo(() => puzzles.sound_enabled)
+
+    return (<>
+        <button
+            onClick={() => setSoundEnabled(!soundEnabled())}
+            class="p-2 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-slate-800"
+            aria-label={soundEnabled() ? "Mute audio" : "Enable audio"}
+        >
+            {soundEnabled() ? (
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+            ) : (
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                </svg>
+            )}
+        </button>
     </>)
 }

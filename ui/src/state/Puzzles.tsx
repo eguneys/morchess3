@@ -15,6 +15,7 @@ type SavedPuzzleInProgress = {
 type SavedDailyPuzzleSetInProgress = Record<DifficultyTier, SavedPuzzleInProgress>
 
 type SavedState = {
+    sound_enabled: boolean
     saved_daily_puzzle_set: SavedDailyPuzzleSetInProgress | undefined
     daily_selected_tier: DifficultyTier
 }
@@ -25,6 +26,7 @@ type State = SavedState & {
 }
 
 type Actions = {
+    set_sound_enabled(_: boolean): void
     set_daily_tier(tier: DifficultyTier): void
     set_daily_steps(nb_steps: number): void
     set_daily_fen(fen: FEN): void
@@ -42,6 +44,7 @@ export function create_puzzles(store: MorStore): Puzzles {
     let todays_date = createAsync(() => PuzzleUtils.todays_date())
 
     let [pstore, set_pstore] = makePersisted(createStore<SavedState>({
+        sound_enabled: true,
         daily_selected_tier: 'b',
         saved_daily_puzzle_set: undefined,
     }), { name: '.morchess.puzzles-store.v1'})
@@ -80,6 +83,9 @@ export function create_puzzles(store: MorStore): Puzzles {
     }
 
     let state = {
+        get sound_enabled() {
+            return pstore.sound_enabled
+        },
         get daily_selected_tier() {
             return pstore.daily_selected_tier
         },
@@ -95,6 +101,9 @@ export function create_puzzles(store: MorStore): Puzzles {
     }
 
     let actions = {
+        set_sound_enabled(_: boolean) {
+            set_pstore('sound_enabled', _)
+        },
         set_daily_tier(tier: DifficultyTier) {
             set_pstore('daily_selected_tier', tier)
         },
