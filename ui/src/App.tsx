@@ -241,15 +241,19 @@ const PuzzleInfoCard = (props: { stats?: PuzzleStats, selected_tier: DifficultyT
             </div>
 
             <div class="mb-3">
-                <Show when={props.stats?.nb_solved !== undefined}>
-                    <span class="text-xs text-slate-400">See the leaderboards if you made it.</span>
-                </Show>
+                <Switch fallback={
+                    <span class="text-xs text-slate-400">Good luck solving!</span>
+                }>
+                    <Match when={props.stats?.nb_solved !== undefined}>
+                        <span class="text-xs text-slate-400">See the leaderboards if you made it.</span>
+                    </Match>
 
-                <Show when={props.stats?.nb_revealed !== undefined}>
-                    <span class="text-xs text-slate-400">Come back tomorrow to try again.</span>
-                </Show>
+                    <Match when={props.stats?.nb_revealed !== undefined}>
+                        <span class="text-xs text-slate-400">Come back tomorrow to try again.</span>
+                    </Match>
+                </Switch>
             </div>
-        </>)
+    </>)
 }
 
 export type Navigation = 'home' | 'about' | 'legal' | 'learn'
