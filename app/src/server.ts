@@ -17,6 +17,8 @@ app.use(bodyParser.json());
 app.use(cookieParser());
 app.use(cors({ credentials: true, origin: true }));
 
+app.set('trust proxy', 'loopback')
+
 
 app.use((req, _, next) => {
   inc(metrics.requests, req.path)

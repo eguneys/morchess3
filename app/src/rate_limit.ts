@@ -1,4 +1,5 @@
 import { db } from './db_init.js'
+import { log } from './logging.js'
 import { type RateLimitDb } from './types.js'
 
 export class RateLimitError extends Error {}
@@ -76,9 +77,11 @@ export async function rateLimit(
     return
   }
 
+  row.count = row.count + 1
+
   if (row.count >= limit) {
+    log('warn', `Hit Rate Limit ${row.count}/${limit} : ${userId}/${endpoint}`)
     throw new RateLimitError()
   }
 
-  row.count = row.count + 1
 }
