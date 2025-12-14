@@ -278,6 +278,8 @@ export function _update(delta: number) {
                 endgame_timer = 2000
 
                 set_update_solved()
+
+                play_sfx('win')
             }
         }
     }

@@ -20,6 +20,7 @@ export function AudioContent(): AudioContent {
         buffers['pickup'] = await load_audio(ctx, '/sfx/pickup.mp3')
         buffers['pickup2'] = await load_audio(ctx, '/sfx/pickup2.mp3')
         buffers['drop_good'] = await load_audio(ctx, '/sfx/drop_good.mp3')
+        buffers['win'] = await load_audio(ctx, '/sfx/win.mp3')
     }
 
     function play(music: string, loop: boolean = false, volume: number = .9) {
