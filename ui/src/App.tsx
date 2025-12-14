@@ -184,6 +184,16 @@ const PuzzleInfoCard = (props: { stats?: PuzzleStats, selected_tier: DifficultyT
         return `${utcFormatted} (UTC)`;
     });
 
+    const bg_border_solved = createMemo(() => {
+
+        if (props.stats?.nb_revealed !== undefined) {
+            return 'bg-amber-950/50 border-amber-800'
+        } else if (props.stats?.nb_solved !== undefined) {
+            return 'bg-emerald-950/50 border-emerald-800'
+        } else {
+            return 'bg-slate-950/50 border-slate-800'
+        }
+    })
 
     return (<>
             <div class="flex items-center justify-between mb-4">
@@ -200,7 +210,7 @@ const PuzzleInfoCard = (props: { stats?: PuzzleStats, selected_tier: DifficultyT
                 Reconstruct the original configuration consistent with pieces' attack relationships.
             </p>
 
-            <div class="flex items-center gap-3 p-4 bg-slate-950/50 rounded-lg border border-slate-800 mb-6">
+            <div class={`flex items-center gap-3 p-4 rounded-lg border ${bg_border_solved()} mb-4`}>
             <Switch fallback={<>
                 <span class="font-semibold text-slate-400">
                     Distance Traveled:
@@ -208,28 +218,37 @@ const PuzzleInfoCard = (props: { stats?: PuzzleStats, selected_tier: DifficultyT
                 <span class="font-bold text-xl text-slate-200">{props.stats?.nb_steps}</span>
             </>
             }>
-                <Match when={props.stats?.nb_revealed}>{nb_revealed =>
+                <Match when={props.stats?.nb_revealed !== undefined}>
                     <>
-                        <span class="font-semibold text-slate-500">
+                        <span class="font-semibold text-amber-500">
                             Revealed Solution After:
                         </span>
-                        <span class="font-bold text-xl text-slate-200">{nb_revealed()}</span>
+                        <span class="font-bold text-xl text-amber-200">{props.stats!.nb_revealed}</span>
                     </>
-                }</Match>
-                <Match when={props.stats?.nb_solved}>{nb_solved =>
+                </Match>
+                <Match when={props.stats?.nb_solved !== undefined}>
                     <>
-                        <span class="font-semibold text-slate-400">
+                        <span class="font-semibold text-emerald-400">
                             Solved Solution After:
                         </span>
-                        <span class="font-bold text-xl text-slate-200">{nb_solved()}</span>
+                        <span class="font-bold text-xl text-emerald-200">{props.stats!.nb_solved}</span>
                     </>
-                }</Match>
+                </Match>
 
 
 
             </Switch>
             </div>
 
+            <div class="mb-3">
+                <Show when={props.stats?.nb_solved !== undefined}>
+                    <span class="text-xs text-slate-400">See the leaderboards if you made it.</span>
+                </Show>
+
+                <Show when={props.stats?.nb_revealed !== undefined}>
+                    <span class="text-xs text-slate-400">Come back tomorrow to try again.</span>
+                </Show>
+            </div>
         </>)
 }
 

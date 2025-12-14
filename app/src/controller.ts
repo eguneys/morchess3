@@ -114,10 +114,16 @@ router.post('/handle', async (req, res) => {
         const thisYear = getYearsUTC()
 
         invalidateCache(`daily:${today}`)
-        invalidateCache(`weekly:${thisWeek}`)
+        invalidateCache(`weekly:${thisWeek}:a`)
+        invalidateCache(`weekly:${thisWeek}:b`)
+        invalidateCache(`weekly:${thisWeek}:c`)
         /* maybe remove */
-        invalidateCache(`monthly:${thisMonth}`)
-        invalidateCache(`yearly:${thisYear}`)
+        invalidateCache(`weekly:${thisMonth}:a`)
+        invalidateCache(`weekly:${thisMonth}:b`)
+        invalidateCache(`weekly:${thisMonth}:c`)
+        invalidateCache(`weekly:${thisYear}:a`)
+        invalidateCache(`weekly:${thisYear}:b`)
+        invalidateCache(`weekly:${thisYear}:c`)
 
         res.json({ ok: true })
     } catch (e) {
@@ -263,7 +269,7 @@ async function computeDailyLeaderboard(date: string, user_id: UserDbId) {
         JOIN users u ON u.id = d.user_id
         WHERE d.date_utc = ?
         ORDER BY d.score ASC
-        LIMIT 100
+        LIMIT 300
     `).all(date)
         setCache(cacheKey, rows, 30 * 60_000)
     }
