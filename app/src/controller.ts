@@ -293,7 +293,7 @@ async function computeWeeklyLeaderboard(since: string, user_id: UserDbId) {
     const with_cache = async (tier: DifficultyTier) => {
         let rows: LeaderboardRow[]
 
-        let cacheKey = `weekly:${since}`
+        let cacheKey = `weekly:${since}:${tier}`
         let cached = getCache<LeaderboardRow[]>(cacheKey)
 
         if (cached) {
