@@ -12,6 +12,7 @@ import type { SimulApi } from './thegame/simulation2'
  */
 
 export const TheGameBoard = (props: {
+  is_muted: boolean,
   fen?: FEN,
   target?: FEN,
   nb_steps?: number,
@@ -68,6 +69,9 @@ export const TheGameBoard = (props: {
     const sApi = await api.request_api()
     simulApi = sApi
 
+
+    simulApi.set_muted(set_muted)
+
     // Engine → Solid event bridges
     simulApi.set_update_fen((fen: FEN) => {
       // Engine-originated update
@@ -98,6 +102,15 @@ export const TheGameBoard = (props: {
     if (f && t) {
       sync.setEngineState(f, t, s)
       simulApi.load_position(f, t, s)
+    }
+  })
+
+  let set_muted = false
+
+  createEffect(() => {
+    set_muted = props.is_muted
+    if (simulApi) {
+      simulApi.set_muted(set_muted)
     }
   })
 

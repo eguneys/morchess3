@@ -1,5 +1,6 @@
 import { Loop } from "./loop"
 import * as simulate from './simulation2'
+import { audio } from "./simulation2"
 import { drag, Init_canvas, type InitCanvas } from './webgl/canvas'
 
 type Scene = {
@@ -93,6 +94,7 @@ export async function main(el: HTMLElement): Promise<GameAPI> {
     canvas.classList.add('interactive')
     el.appendChild(canvas)
 
+    await audio.load()
     _init()
 
     let cleanup_loop = Loop(_update, _render, _after_render)

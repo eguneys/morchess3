@@ -1,6 +1,6 @@
 import { createMemo, Show } from "solid-js";
 import { TheGameBoard } from "./TheGameBoard";
-import { useLearn } from "./state";
+import { useLearn, usePuzzles } from "./state";
 import type { Module, ModuleId } from "./state/learn_types";
 
 
@@ -103,6 +103,7 @@ function Dashboard(props: { set_module: (_: ModuleId) => void }) {
 
 function Level(props: { module: Module, on_back: () => void }) {
 
+    let [puzzles] = usePuzzles()
     let [learn,{ on_next, on_reset, set_solved, set_fen, set_steps }] = useLearn()
 
     const disabled_next = createMemo(() => learn.can_next ? 'cursor-pointer': 'cursor-not-allowed opacity-50')
@@ -140,7 +141,7 @@ function Level(props: { module: Module, on_back: () => void }) {
                     <div
                         id="the-game-board"
                         class="relative w-full max-w-140 aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
-                        <TheGameBoard fen={puzzle_fen()} target={puzzle().base_fen} nb_steps={stats().nb_steps} set_update_steps={set_steps} set_update_fen={set_fen} set_update_solved={set_solved} />
+                        <TheGameBoard is_muted={!puzzles.sound_enabled} fen={puzzle_fen()} target={puzzle().base_fen} nb_steps={stats().nb_steps} set_update_steps={set_steps} set_update_fen={set_fen} set_update_solved={set_solved} />
                     </div>
                 </div>
 

@@ -9,6 +9,18 @@ import type { Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
 import { board_aligns_data, board_to_fen, fen_to_board, find_align_direction, type AlignsData, type Board, type Direction, type FEN, type Pieces } from "./aligns"
 import { AnimationCheckerboard, Animations, AnimationsRandom, Patterns, type AnimationStep as GridAnimationStep } from './grid_patterns'
+import { AudioContent } from "./audio/audio"
+
+
+let is_muted: boolean
+export let audio = AudioContent()
+export function play_sfx(name: string) {
+    if (is_muted) {
+        return
+    }
+    audio.play(name)
+}
+
 
 let COLLISIONS = false
 //COLLISIONS = true
@@ -142,6 +154,8 @@ let steps: number
 
 export function _init() {
 
+    is_muted = false
+
     grid_animation = {
         frames: [],
         time: 0,
@@ -215,6 +229,10 @@ export function _update(delta: number) {
                     }
                     cursor.follow.x.swayEnabled = false
                     cursor.follow.y.swayEnabled = false
+
+
+                    play_sfx('pickup2')
+
                 }
 
         }
@@ -239,6 +257,9 @@ export function _update(delta: number) {
 
     if (drag.is_up) {
         if (cursor.drag) {
+
+            play_sfx('drop_good')
+
             cursor.drag = undefined
 
             let fen = board_to_fen(build_board_from_pieces())
@@ -718,6 +739,7 @@ export function _cleanup() {
 }
 
 export type SimulApi =  {
+    set_muted: (_: boolean) => void
     load_position: (fen: FEN, target: FEN, nb_steps: number) => void
     set_update_steps: (fn: (_: number) => void) => void
     set_update_fen: (fn: (_: FEN) => void) => void
@@ -730,6 +752,9 @@ let set_update_solved = () => {}
 
 export function _api() {
     return {
+        set_muted(value: boolean) {
+            is_muted = value
+        },
         set_update_fen(update_fen: (_: FEN) => void) {
             set_update_fen = update_fen
         },

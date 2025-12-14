@@ -60,7 +60,7 @@ const Home = () => {
                  class="relative w-full max-w-150 aspect-square shadow-2xl rounded-lg overflow-hidden border-4 border-slate-700">
                     <ErrorBoundary fallback={""}>
                         <Suspense>
-                            <TheGameBoard fen={puzzle()?.fen} target={puzzle()?.base_fen} nb_steps={stats()?.nb_steps} set_update_steps={set_daily_steps} set_update_fen={set_daily_fen} set_update_solved={set_solved} />
+                            <TheGameBoard is_muted={!puzzles.sound_enabled} fen={puzzle()?.fen} target={puzzle()?.base_fen} nb_steps={stats()?.nb_steps} set_update_steps={set_daily_steps} set_update_fen={set_daily_fen} set_update_solved={set_solved} />
                         </Suspense>
                     </ErrorBoundary>
                 </div>
