@@ -31,8 +31,8 @@ router.use(async (req, res, next) => {
 
   let ip = req.ip
   if (ip) {
-      await rateLimit(ip, 'ip_fast', 5, 1)
-      await rateLimit(ip, 'ip_hour', 60, 3600)
+      await rateLimit(ip, 'ip_fast', 15, 5)
+      await rateLimit(ip, 'ip_hour', 100, 3600)
   }
 
   let sessionId = req.cookies.morchess_session
@@ -129,7 +129,7 @@ router.post('/handle', async (req, res) => {
 router.post('/score', async (req, res) => {
 
 
-    await rateLimit(req.user_id!, 'score_fast', 3, 10)
+    await rateLimit(req.user_id!, 'score_fast', 5, 15)
     await rateLimit(req.user_id!, 'score_hour', 10, 3600)
 
     const { score, difficulty, hash } = req.body
