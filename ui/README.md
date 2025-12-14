@@ -3,6 +3,9 @@
 
 Mor Chess 3 is a chess puzzle game where the goal is to arrange the pieces so each piece attacks the same pieces as the target position.
 
+![Mor Chess 3 website game board view](ui/design/images/the_board.png)
+
+
 It features daily puzzles, a public leaderboard, and a tutorial.
 
 
