@@ -8,6 +8,7 @@ import type { DifficultyLeaderboard, DifficultyTier, Ranking, UserDbId } from ".
 import { getMonthsUTC, getTodaysUTC, getWeeksUTC, getYearsUTC } from "./dates.js";
 import { getDefaultHighWaterMark } from "stream";
 import { DEV } from "./config.js";
+import { inc, metrics } from "./metrics.js";
 
 
 export const gen_id8 = () => Math.random().toString(16).slice(2, 10)

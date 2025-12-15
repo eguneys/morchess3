@@ -373,6 +373,7 @@ const Queen_Puzzles: ModulePuzzle[] = [
     },
 ]
 
+/*
 const RemixI_Puzzles: ModulePuzzle[] = [
     { 
         id: 'remix1', 
@@ -382,16 +383,7 @@ const RemixI_Puzzles: ModulePuzzle[] = [
         initial_fen: ''
     },
 ]
-
-const King_Puzzles: ModulePuzzle[] = [
-    { 
-        id: 'empty', 
-        title: '8x8 Board', 
-        description: 'The game is played on an 8x8 board. There are no pieces to arrange yet. Click the board to activate next level.',
-        base_fen: '', 
-        initial_fen: ''
-    },
-]
+    */
 
 export const Learn_Modules: Module[] = [
     {

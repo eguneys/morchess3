@@ -7,7 +7,8 @@ MORCHESS MVP TODO
 - [x] Leaderboards (daily + global)
 - [x] Mobile-ready responsive UI (board + buttons)
 - [x] Sounds (minimal UX layer)
-- [ ] Finish Progression Content
-- [ ] Blog Post “Introducing MorChess”
+- [x] Finish Progression Content
+- [x] Blog Post “Introducing MorChess”
+- [ ] Publish Post
 - [ ] Ship it 🚀
 - [ ] Market
