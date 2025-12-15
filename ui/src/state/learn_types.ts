@@ -443,6 +443,7 @@ export const Learn_Modules: Module[] = [
         description: "Puzzles involving the Queen",
         puzzles: Queen_Puzzles
     },
+    /*
     {
         id: "remix1",
         icon: Paths.queen,
@@ -450,18 +451,5 @@ export const Learn_Modules: Module[] = [
         description: "Special mix of curated puzzles",
         puzzles: RemixI_Puzzles
     },
-    {
-        id: "remix2",
-        icon: Paths.queen,
-        title: "Remix II",
-        description: "Special mix of curated puzzles more",
-        puzzles: King_Puzzles
-    },
-    {
-        id: "remix3",
-        icon: Paths.queen,
-        title: "Remix III",
-        description: "Special mix of curated puzzles even more",
-        puzzles: King_Puzzles
-    },
+    */
 ]
