@@ -90,7 +90,7 @@ router.use(async (req, res, next) => {
 router.post('/handle', async (req, res) => {
 
     await rateLimit(req.user_id!, 'handle_fast', 3, 10)
-    await rateLimit(req.user_id!, 'handle_hour', 3, 3600)
+    await rateLimit(req.user_id!, 'handle_hour', 30, 3600)
 
     const { handle } = req.body
 
