@@ -183,12 +183,18 @@ router.post('/score', async (req, res) => {
         const thisYear = getYearsUTC()
 
 
-
         invalidateCache(`daily:${today}`)
-        invalidateCache(`weekly:${thisWeek}`)
+        invalidateCache(`weekly:${thisWeek}:a`)
+        invalidateCache(`weekly:${thisWeek}:b`)
+        invalidateCache(`weekly:${thisWeek}:c`)
         /* maybe remove */
-        invalidateCache(`monthly:${thisMonth}`)
-        invalidateCache(`yearly:${thisYear}`)
+        invalidateCache(`weekly:${thisMonth}:a`)
+        invalidateCache(`weekly:${thisMonth}:b`)
+        invalidateCache(`weekly:${thisMonth}:c`)
+        invalidateCache(`weekly:${thisYear}:a`)
+        invalidateCache(`weekly:${thisYear}:b`)
+        invalidateCache(`weekly:${thisYear}:c`)
+
 
 
 
