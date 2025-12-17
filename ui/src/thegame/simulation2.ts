@@ -296,8 +296,8 @@ export function _update(delta: number) {
     }
 
     if (endgame_timer > 1500) {
-        endgame_anim_channels.x.springTo(10, { stiffness: 1000, damping: 8 })
-        endgame_anim_channels.y.springTo(-35, { stiffness: 1000, damping: 8 })
+        endgame_anim_channels.x.springTo(0, { stiffness: 1000, damping: 8 })
+        endgame_anim_channels.y.springTo(45, { stiffness: 1000, damping: 8 })
         endgame_anim_channels.r.springTo(Math.PI * 0.5, { stiffness: 1000, damping: 2 })
     } else if (endgame_timer > 800) {
         endgame_anim_channels.y.springTo(-1000, { stiffness: 50 })

@@ -18,6 +18,10 @@ export class PuzzleUtils {
         a = fen_remove_all_pawns(a)
         b = fen_remove_some_pawns(b)
 
+
+        a = fen_remove_double_pieces(a)
+        b = fen_remove_triple_pieces(b)
+
         let nb_daily_id3 = get_daily_id() * 3
 
         return {
@@ -32,6 +36,78 @@ export class PuzzleUtils {
     }
 }
 
+
+function fen_remove_double_pieces(fen: FEN) {
+
+    let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
+
+    let bb = []
+
+    bb = []
+    for (let sq of pos.board.bishop) {
+        bb.push(sq)
+    }
+    for (let i = 2; i < bb.length; i++) {
+        pos.board.take(bb[i])
+    }
+   
+
+    bb = []
+    for (let sq of pos.board.knight) {
+        bb.push(sq)
+    }
+    for (let i = 2; i < bb.length; i++) {
+        pos.board.take(bb[i])
+    }
+   
+
+    bb = []
+    for (let sq of pos.board.rook) {
+        bb.push(sq)
+    }
+    for (let i = 2; i < bb.length; i++) {
+        pos.board.take(bb[i])
+    }
+   
+
+    return makeFen(pos.toSetup())
+}
+
+function fen_remove_triple_pieces(fen: FEN) {
+
+    let pos = Chess.fromSetupUnchecked(parseFen(fen).unwrap())
+
+    let bb = []
+
+    bb = []
+    for (let sq of pos.board.bishop) {
+        bb.push(sq)
+    }
+    for (let i = 3; i < bb.length; i++) {
+        pos.board.take(bb[i])
+    }
+   
+
+    bb = []
+    for (let sq of pos.board.knight) {
+        bb.push(sq)
+    }
+    for (let i = 3; i < bb.length; i++) {
+        pos.board.take(bb[i])
+    }
+   
+
+    bb = []
+    for (let sq of pos.board.rook) {
+        bb.push(sq)
+    }
+    for (let i = 3; i < bb.length; i++) {
+        pos.board.take(bb[i])
+    }
+   
+
+    return makeFen(pos.toSetup())
+}
 
 function fen_remove_all_pawns(fen: FEN) {
 

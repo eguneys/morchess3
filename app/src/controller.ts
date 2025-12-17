@@ -8,6 +8,7 @@ import type { DifficultyLeaderboard, DifficultyTier, Ranking, UserDbId } from ".
 import { getMonthsUTC, getTodaysUTC, getWeeksUTC, getYearsUTC } from "./dates.js";
 import { getDefaultHighWaterMark } from "stream";
 import { DEV } from "./config.js";
+import { inc, metrics } from "./metrics.js";
 
 
 export const gen_id8 = () => Math.random().toString(16).slice(2, 10)
@@ -90,7 +91,7 @@ router.use(async (req, res, next) => {
 router.post('/handle', async (req, res) => {
 
     await rateLimit(req.user_id!, 'handle_fast', 3, 10)
-    await rateLimit(req.user_id!, 'handle_hour', 3, 3600)
+    await rateLimit(req.user_id!, 'handle_hour', 30, 3600)
 
     const { handle } = req.body
 
@@ -183,12 +184,18 @@ router.post('/score', async (req, res) => {
         const thisYear = getYearsUTC()
 
 
-
         invalidateCache(`daily:${today}`)
-        invalidateCache(`weekly:${thisWeek}`)
+        invalidateCache(`weekly:${thisWeek}:a`)
+        invalidateCache(`weekly:${thisWeek}:b`)
+        invalidateCache(`weekly:${thisWeek}:c`)
         /* maybe remove */
-        invalidateCache(`monthly:${thisMonth}`)
-        invalidateCache(`yearly:${thisYear}`)
+        invalidateCache(`weekly:${thisMonth}:a`)
+        invalidateCache(`weekly:${thisMonth}:b`)
+        invalidateCache(`weekly:${thisMonth}:c`)
+        invalidateCache(`weekly:${thisYear}:a`)
+        invalidateCache(`weekly:${thisYear}:b`)
+        invalidateCache(`weekly:${thisYear}:c`)
+
 
 
 
