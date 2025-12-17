@@ -1,9 +1,10 @@
-import { createMemo, createSelector, createSignal, ErrorBoundary, For, type JSX, lazy, Match, Show, Suspense, Switch  } from 'solid-js'
+import { createEffect, createMemo, createSelector, createSignal, ErrorBoundary, For, type JSX, lazy, Match, Show, Suspense, Switch  } from 'solid-js'
 import { A, Route, Router, useLocation, useNavigate } from '@solidjs/router'
 import { TheGameBoard } from './TheGameBoard';
 import { type DifficultyTier, type PuzzleStats } from './state/types';
 import { MorStoreProvider, useLeaderboards, usePuzzles } from './state';
 import type { TimePeriod } from './state/Leaderboards';
+import { makePersisted } from '@solid-primitives/storage';
 
 const Legal = lazy(() => import("./Legal"));
 const About = lazy(() => import("./About"));
@@ -32,7 +33,7 @@ function Layout(props: { children?: JSX.Element }) {
         <div class="min-h-screen flex flex-col">
             <MorStoreProvider>
                 <Navbar isMobileMenuOpen={isMobileMenuOpen()} setIsMobileMenuOpen={setIsMobileMenuOpen} />
-                <main class="grow max-w-6xl mx-auto w-full px-4 py-8 lg:py-12" onClick={() => isMobileMenuOpen() && setIsMobileMenuOpen(false)}>
+                <main class="grow w-full" onClick={() => isMobileMenuOpen() && setIsMobileMenuOpen(false)}>
                     {props.children}
                 </main>
             </MorStoreProvider>
@@ -51,7 +52,8 @@ const Home = () => {
     const stats = createMemo(() => puzzles.stats)
 
     return (<>
-        <div class="grid lg:grid-cols-12 gap-8 items-start">
+        <WelcomeBanner/>
+        <div class="grid lg:grid-cols-12 gap-8 items-start py-12">
 
             {/* Left Column: Board */}
             <div class="lg:col-span-7 xl:col-span-8 flex justify-center">
@@ -118,6 +120,75 @@ const Home = () => {
             </div>
         </div>
     </>)
+}
+
+const WelcomeBanner = () => {
+
+    const [isVisible, setIsVisible] = createSignal(false)
+    const [welcome_dismissed, set_welcome_dismissed] = makePersisted(createSignal(false), {
+        name: '.morchess3.welcome-dismissed'
+    })
+
+
+    createEffect(() => {
+        let isDismissed = welcome_dismissed()
+        if (!isDismissed) {
+            let timer = setTimeout(() => setIsVisible(true), 1000)
+            return () => clearTimeout(timer)
+        }
+    })
+
+    const navigate = useNavigate()
+
+    const onGoToLearn = () => {
+        navigate('/Learn')
+    }
+
+    const handleDismiss = () => {
+        setIsVisible(false)
+        set_welcome_dismissed(true)
+    }
+
+    return (<Show when={isVisible()}>
+        <>
+            <div class="w-full bg-slate-900/50 border-b border-indigo-500/20 backdrop-blur-sm animate-in slide-in-from-top duration-500 overflow-hidden">
+                <div class="max-w-6xl mx-auto px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-200">New to Mor Chess 3?</p>
+                            <p class="text-xs text-slate-500">Master pieces, and symbols in our Academy modules.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <button
+                            onClick={onGoToLearn}
+                            class="text-xs font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors flex items-center gap-1 group"
+                        >
+                            Visit Learn Section
+                            <svg class="w-3 h-3 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </button>
+                        <button
+                            onClick={handleDismiss}
+                            class="p-1.5 text-slate-600 hover:text-slate-400 hover:bg-slate-800 rounded-lg transition-all"
+                            aria-label="Dismiss banner"
+                        >
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
+    </Show>)
 }
 
 const ActionButtons = (props: { on_reveal: () => void, on_shuffle: () => void }) => {
