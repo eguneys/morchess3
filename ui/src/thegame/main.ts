@@ -1,9 +1,9 @@
-import { Loop } from "./loop"
+import { BatchRenderer, DragHandler, Init_canvas, Loop, type InitCanvas } from 'twisterjs'
 import * as simulate from './simulation2'
 import { audio } from "./simulation2"
-import { drag, Init_canvas, type InitCanvas } from './webgl/canvas'
 
 type Scene = {
+    _set_ctx(batch: BatchRenderer, drag: DragHandler): void
     _init(): void
     _update(delta: number): void
     _render(): void
@@ -13,6 +13,7 @@ type Scene = {
 }
 
 const default_scene = {
+    _set_ctx(_batch: BatchRenderer, _drag: DragHandler) {},
     _init() {},
     _update(_delta: number) {},
     _render() {},
@@ -47,6 +48,7 @@ function _update(delta: number) {
 
     if (next_scene !== current_scene) {
         current_scene = next_scene
+        current_scene._set_ctx(batch, drag)
         current_scene._init()
         // TODO fix
         resolve_simul_api(simulate._api())
@@ -79,6 +81,7 @@ function _cleanup() {
 }
 
 export type GameAPI = {
+    canvas: HTMLCanvasElement
     cleanup: () => void
     request_api: () => Promise<simulate.SimulApi>
 }
@@ -87,20 +90,25 @@ let init_canvas: InitCanvas
 
 let resolve_simul_api: (value: simulate.SimulApi) => void
 
-export async function main(el: HTMLElement): Promise<GameAPI> {
+let batch: BatchRenderer
+let drag: DragHandler
 
-    init_canvas  = Init_canvas()
-    let canvas = init_canvas.canvas
-    canvas.classList.add('interactive')
-    el.appendChild(canvas)
+export async function demo(el: HTMLElement): Promise<GameAPI> {
+
+    _init()
+
+    init_canvas  = Init_canvas(1080, 1080, el, _render)
+
+    batch = init_canvas.batch
+    drag = DragHandler(1080, 1080, init_canvas.canvas)
 
     await audio.load()
-    _init()
 
     let cleanup_loop = Loop(_update, _render, _after_render)
 
 
     return {
+        canvas: init_canvas.canvas,
         cleanup: () => {
             cleanup_loop()
             _cleanup()

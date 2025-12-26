@@ -1,10 +1,11 @@
 import type { SceneName } from "./main"
-import { batch, drag } from "./webgl/canvas"
-import { add, distance, mulScalar, sub, vec2, type Vec2 } from "./math/vec2"
-import { AnimChannel } from "./anim"
-//import { hitbox_rect } from "./simulation"
-import { colors, vibrant } from './colors_in_gl'
-import type { Rect } from "./math/rect"
+
+import { add, distance, mulScalar, sub, vec2, type Vec2 } from "twisterjs"
+import { AnimChannel } from "twisterjs"
+import { colors, vibrant } from "twisterjs"
+import type { Rect } from "twisterjs"
+import { BatchRenderer, DragHandler } from "twisterjs"
+
 import type { Square } from "./chess/types"
 import { squareFile, squareFromCoords, squareRank } from "./chess/util"
 import { board_aligns_data, board_to_fen, fen_to_board, find_align_direction, type AlignsData, type Board, type Direction, type FEN, type Pieces } from "./aligns"
@@ -525,7 +526,7 @@ const yellow_colors = [vibrant.yellow, vibrant.white, vibrant.blue, vibrant.pink
 
 function render_mini_role(x: number, y: number, pieces: Pieces) {
 
-    let color = yellow_colors[parseInt(pieces[1]) - 1]
+    let color = yellow_colors[parseInt(pieces[1]) - 1]!
     let thick = 4
 
     if (pieces[0] === 'r') {
@@ -565,7 +566,7 @@ function render_mini_role(x: number, y: number, pieces: Pieces) {
 
 function render_role(x: number, y: number, pieces: Pieces) {
 
-    let color = yellow_colors[parseInt(pieces[1]) - 1]
+    let color = yellow_colors[parseInt(pieces[1]) - 1]!
     let thick = 9
 
     if (pieces[0] === 'b') {
@@ -738,6 +739,13 @@ function build_board_from_pieces() {
 
 export function _cleanup() {
 
+}
+
+let batch: BatchRenderer
+let drag: DragHandler
+export function _set_ctx(b: BatchRenderer, d: DragHandler) {
+    batch = b
+    drag = d
 }
 
 export type SimulApi =  {

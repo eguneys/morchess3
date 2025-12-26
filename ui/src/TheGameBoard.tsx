@@ -1,7 +1,8 @@
 import { createEffect, onCleanup, onMount } from 'solid-js'
-import { type GameAPI, main as GameMain } from './thegame/main'
+import { demo as GameMain } from './thegame/main'
 import type { FEN } from './thegame/aligns'
 import type { SimulApi } from './thegame/simulation2'
+import { AppendAsyncGameToDomManager } from 'twisterjs'
 
 /**
  * A clean, loop-free integration between Solid and an imperative engine.
@@ -22,9 +23,7 @@ export const TheGameBoard = (props: {
 }) => {
 
   let el!: HTMLDivElement
-  let gameApi: GameAPI | null = null
   let simulApi: SimulApi | null = null
-  let cleanupEarly = false
 
   /**
    * Sync controller:
@@ -56,20 +55,29 @@ export const TheGameBoard = (props: {
     }
   }
 
-  onMount(async () => {
-    const api = await GameMain(el)
+  async function renderFn() {
+    let res = await GameMain(el)
 
-    if (cleanupEarly) {
-      api.cleanup()
-      return
-    }
+    simulApi = await res.request_api()
 
-    gameApi = api
+    bind_simul_api(simulApi)
 
-    const sApi = await api.request_api()
-    simulApi = sApi
+    return res
+  }
 
+  onMount(() => {
+    let { on_new_renderFn, on_destroy } = AppendAsyncGameToDomManager(el)
 
+    createEffect(() => {
+      on_new_renderFn(renderFn)
+    })
+
+    onCleanup(() => {
+      on_destroy()
+    })
+  })
+
+  const bind_simul_api = (simulApi: SimulApi) => {
     simulApi.set_muted(set_muted)
 
     // Engine → Solid event bridges
@@ -77,21 +85,21 @@ export const TheGameBoard = (props: {
       // Engine-originated update
       sync.fen = fen
       queueMicrotask(() => {
-          props.set_update_fen(fen)
+        props.set_update_fen(fen)
       })
     })
 
     simulApi.set_update_steps((steps: number) => {
       sync.steps = steps
-        queueMicrotask(() => {
-            props.set_update_steps(steps)
-        })
+      queueMicrotask(() => {
+        props.set_update_steps(steps)
+      })
     })
 
     simulApi.set_update_solved(() => {
-        queueMicrotask(() => {
-            props.set_update_solved()
-        })
+      queueMicrotask(() => {
+        props.set_update_solved()
+      })
     })
 
     // Initial load if props are ready at mount
@@ -103,7 +111,7 @@ export const TheGameBoard = (props: {
       sync.setEngineState(f, t, s)
       simulApi.load_position(f, t, s)
     }
-  })
+  }
 
   let set_muted = false
 
@@ -137,13 +145,5 @@ export const TheGameBoard = (props: {
     simulApi.load_position(f, t, s)
   })
 
-  onCleanup(() => {
-    if (!gameApi) {
-      cleanupEarly = true
-      return
-    }
-    gameApi.cleanup()
-  })
-
-  return <div ref={el} class="game-wrap"></div>
+  return <div ref={el} class='w-full h-full flex justify-content items-center'></div>
 }
